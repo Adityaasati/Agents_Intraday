@@ -1,32 +1,20 @@
-# Trading Configuration
-TOTAL_CAPITAL = 100000  # Your capital
-RISK_PER_TRADE = 2.0   # Risk percentage per trade
-MAX_POSITIONS = 5      # Start with 5 for testing
-UPDATE_INTERVAL = 60   # 1 minute updates
-
-# Your existing table names
-STOCKS_CATEGORIES_TABLE = 'stocks_categories_table'
-HISTORICAL_DATA_PREFIX = 'historical_data_3m_'
-CURRENT_QUARTER = '2025_q2'
-
+# config.py - Simplified for Day 1/2 Implementation Only
 import os
 import numpy as np
 from datetime import datetime
 
 # ==========================================
-# TRADING CONFIGURATION
+# TRADING CONFIGURATION - DAY 1/2 ONLY
 # ==========================================
 
 # Capital Management
 TOTAL_CAPITAL = 100000  # Total trading capital in INR
 RISK_PER_TRADE = 2.0    # Risk percentage per trade (2% = 2000 INR per trade)
-MAX_POSITIONS_LIVE = 5   # Maximum concurrent positions for live trading
-MAX_POSITIONS_BACKTEST = 999  # Unlimited for backtesting
+MAX_POSITIONS_LIVE = 5   # Maximum concurrent positions for Day 1/2
 
 # Position Sizing
 MIN_POSITION_SIZE = 5000    # Minimum position size in INR
 MAX_POSITION_SIZE_PERCENT = 15  # Maximum 15% of capital per position
-POSITION_SIZE_INCREMENT = 1000  # Position size increments
 
 # ==========================================
 # TECHNICAL ANALYSIS PARAMETERS
@@ -36,6 +24,8 @@ POSITION_SIZE_INCREMENT = 1000  # Position size increments
 RSI_PERIODS = [14, 21]
 RSI_OVERSOLD = 30
 RSI_OVERBOUGHT = 70
+
+# Volatility-based RSI thresholds
 RSI_OVERSOLD_LOW_VOL = 25   # Tighter for low volatility stocks
 RSI_OVERBOUGHT_LOW_VOL = 75
 RSI_OVERSOLD_HIGH_VOL = 20  # Wider for high volatility stocks  
@@ -60,7 +50,6 @@ ATR_PERIOD = 14
 # Volume Analysis
 VOLUME_SMA_PERIOD = 20
 VOLUME_SPIKE_MULTIPLIER = 2.0  # Volume considered spike if >2x average
-VOLUME_HIGH_MULTIPLIER = 1.5   # High volume threshold
 
 # ==========================================
 # RISK MANAGEMENT PARAMETERS
@@ -68,7 +57,6 @@ VOLUME_HIGH_MULTIPLIER = 1.5   # High volume threshold
 
 # Stop Loss Configuration
 STOP_LOSS_PERCENT = 1.5        # Base stop loss percentage
-TRAILING_STOP_PERCENT = 1.0    # Trailing stop percentage
 ATR_STOP_MULTIPLIER = {
     'Low': 1.5,     # Low volatility: 1.5x ATR
     'Medium': 2.0,  # Medium volatility: 2.0x ATR
@@ -78,7 +66,6 @@ ATR_STOP_MULTIPLIER = {
 # Risk-Reward Configuration
 MIN_RISK_REWARD_RATIO = 2.0    # Minimum 2:1 risk-reward
 STANDARD_RISK_REWARD_RATIO = 2.5
-AGGRESSIVE_RISK_REWARD_RATIO = 3.0
 
 # Portfolio Risk Limits
 MAX_SECTOR_ALLOCATION = 30.0   # Maximum 30% allocation per sector
@@ -92,12 +79,11 @@ MIN_DIVERSIFICATION_SECTORS = 3  # Minimum sectors for diversification
 # Confidence Thresholds
 MIN_CONFIDENCE_THRESHOLD = 0.60    # Minimum 60% confidence for signal generation
 HIGH_CONFIDENCE_THRESHOLD = 0.70   # High confidence threshold
-VERY_HIGH_CONFIDENCE_THRESHOLD = 0.85
 
-# Signal Weights
+# Signal Weights (Day 2 implementation)
 TECHNICAL_WEIGHT = 0.50      # 50% weight to technical analysis
 FUNDAMENTAL_WEIGHT = 0.30    # 30% weight to fundamental analysis
-SENTIMENT_WEIGHT = 0.20      # 20% weight to news sentiment
+SENTIMENT_WEIGHT = 0.20      # 20% weight to news sentiment (Day 3)
 
 # Technical Sub-weights
 RSI_WEIGHT = 0.30           # 30% of technical score
@@ -134,33 +120,23 @@ MARKET_CAP_MULTIPLIER = {
 # Your Existing Table Names
 STOCKS_CATEGORIES_TABLE = 'stocks_categories_table'
 HISTORICAL_DATA_PREFIX = 'historical_data_3m_'
-CURRENT_QUARTER = '2025_q2'
 
-# Data Update Configuration
-UPDATE_INTERVAL_SECONDS = 60  # Update every minute during market hours
-LOOKBACK_DAYS_DEFAULT = 30    # Default lookback period
-MAX_LOOKBACK_DAYS = 365       # Maximum lookback period
-
-# Market Hours (IST)
+# Market Hours (IST) - Simplified
 MARKET_START_TIME = "09:15"
 MARKET_END_TIME = "15:30"
-PRE_MARKET_START = "09:00"
-POST_MARKET_END = "16:00"
 
 # ==========================================
 # SYMBOL SELECTION CRITERIA
 # ==========================================
 
-# Default Filtering Criteria
+# Default Filtering Criteria for Day 1/2
 DEFAULT_CATEGORIES = ['A', 'B']  # Exclude C-category initially
 DEFAULT_MARKET_CAP_TYPES = ['Large_Cap', 'Mid_Cap']  # Exclude Small_Cap initially
 DEFAULT_VOLATILITY_TYPES = ['Low', 'Medium']  # Exclude High volatility initially
 
 # Minimum Criteria
 MIN_MARKET_CAP_CRORES = 1000  # Minimum 1000 crores market cap
-MIN_DAILY_VOLUME = 100000     # Minimum daily volume
 MAX_PE_RATIO = 50             # Maximum PE ratio
-MIN_ROE = 10                  # Minimum ROE percentage
 
 # Testing Symbols (High Quality Large Caps)
 TESTING_SYMBOLS = [
@@ -169,79 +145,27 @@ TESTING_SYMBOLS = [
 ]
 
 # ==========================================
-# PERFORMANCE THRESHOLDS
+# PERFORMANCE THRESHOLDS - DAY 1/2
 # ==========================================
 
-# Backtesting Performance Requirements
+# Basic Performance Requirements
 MIN_WIN_RATE = 50.0           # Minimum 50% win rate
-MIN_PROFIT_FACTOR = 1.3       # Minimum profit factor
 MAX_DRAWDOWN = 10.0           # Maximum 10% drawdown
-MIN_SHARPE_RATIO = 1.5        # Minimum Sharpe ratio
 
-# Live Trading Performance Monitoring
-PERFORMANCE_REVIEW_PERIOD = 30  # Review performance every 30 days
-STRATEGY_ADJUSTMENT_THRESHOLD = 20  # Adjust strategy if win rate drops below 20%
-
-# ==========================================
-# SYSTEM PERFORMANCE CONFIGURATION
-# ==========================================
-
-# Processing Limits
-MAX_SYMBOLS_PER_BATCH = 50    # Process maximum 50 symbols per batch
-MAX_PROCESSING_TIME_MINUTES = 10  # Maximum processing time per batch
-RETRY_ATTEMPTS = 3            # Number of retry attempts for failed operations
-
-# Memory Management
-MAX_MEMORY_USAGE_MB = 1000    # Maximum memory usage in MB
-GARBAGE_COLLECTION_INTERVAL = 100  # Trigger GC every 100 operations
+# System Performance
+MAX_SYMBOLS_PER_BATCH = 10    # Process maximum 10 symbols per batch for Day 1/2
+MAX_PROCESSING_TIME_MINUTES = 5  # Maximum processing time per batch
 
 # ==========================================
-# LOGGING AND MONITORING
+# LOGGING CONFIGURATION - SIMPLIFIED
 # ==========================================
 
-# Log Levels by Module
+# Log Levels
 LOG_LEVELS = {
     'database': 'INFO',
-    'technical_analysis': 'INFO', 
-    'signal_generation': 'INFO',
-    'risk_management': 'WARNING',
-    'portfolio_management': 'INFO',
-    'system_monitor': 'WARNING'
+    'agents': 'INFO',
+    'system': 'INFO'
 }
-
-# Performance Logging
-LOG_PERFORMANCE_METRICS = True
-LOG_SIGNAL_DETAILS = True
-LOG_TRADE_EXECUTION = True
-
-# ==========================================
-# NOTIFICATION CONFIGURATION
-# ==========================================
-
-# Telegram Notification Settings
-SEND_SIGNAL_NOTIFICATIONS = True
-SEND_ERROR_NOTIFICATIONS = True
-SEND_DAILY_SUMMARY = True
-SEND_PERFORMANCE_ALERTS = True
-
-# Notification Thresholds
-HIGH_CONFIDENCE_NOTIFICATION_THRESHOLD = 0.75
-CRITICAL_ERROR_NOTIFICATION = True
-DAILY_SUMMARY_TIME = "16:00"  # Send daily summary at 4 PM
-
-# ==========================================
-# DEVELOPMENT/TESTING FLAGS
-# ==========================================
-
-# Development Settings
-DEBUG_MODE = os.getenv('ENVIRONMENT', 'development') == 'development'
-ENABLE_PAPER_TRADING = os.getenv('PAPER_TRADING_MODE', 'true').lower() == 'true'
-ENABLE_BACKTESTING = True
-
-# Testing Configuration
-USE_TESTING_SYMBOLS_ONLY = True  # Use only testing symbols during development
-SIMULATE_LIVE_DATA = False       # Simulate live data for testing
-FAST_PROCESSING_MODE = False     # Skip some validations for faster processing
 
 # ==========================================
 # UTILITY FUNCTIONS
@@ -252,37 +176,6 @@ def get_current_quarter():
     now = datetime.now()
     quarter = ((now.month - 1) // 3) + 1
     return f"{now.year}_q{quarter}"
-
-def get_position_size_for_category(base_size: float, category: str, volatility: str, market_cap_type: str) -> float:
-    """Calculate adjusted position size based on stock characteristics"""
-    
-    adjusted_size = base_size
-    adjusted_size *= CATEGORY_MULTIPLIER.get(category, 1.0)
-    adjusted_size *= VOLATILITY_POSITION_MULTIPLIER.get(volatility, 1.0)
-    adjusted_size *= MARKET_CAP_MULTIPLIER.get(market_cap_type, 1.0)
-    
-    # Ensure within limits
-    adjusted_size = max(MIN_POSITION_SIZE, adjusted_size)
-    adjusted_size = min(TOTAL_CAPITAL * MAX_POSITION_SIZE_PERCENT / 100, adjusted_size)
-    
-    return round(adjusted_size, 0)
-
-def get_rsi_thresholds(volatility_category: str) -> tuple:
-    """Get RSI thresholds based on volatility"""
-    
-    if volatility_category == 'Low':
-        return (RSI_OVERSOLD_LOW_VOL, RSI_OVERBOUGHT_LOW_VOL)
-    elif volatility_category == 'High':
-        return (RSI_OVERSOLD_HIGH_VOL, RSI_OVERBOUGHT_HIGH_VOL)
-    else:
-        return (RSI_OVERSOLD, RSI_OVERBOUGHT)
-
-def get_stop_loss_multiplier(volatility_category: str) -> float:
-    """Get ATR stop loss multiplier based on volatility"""
-    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
-
-# Update current quarter on import
-CURRENT_QUARTER = get_current_quarter()
 
 def get_rsi_thresholds(volatility_category: str) -> tuple:
     """Get RSI thresholds based on volatility"""
@@ -302,7 +195,7 @@ def calculate_final_confidence(technical_score: float, fundamental_score: float 
                              sentiment_score: float = 0.5, category: str = 'B') -> float:
     """Calculate final confidence score combining all components"""
     
-    # Weighted combination as per knowledge graph
+    # Weighted combination as per Day 2 specification
     combined_score = (
         technical_score * TECHNICAL_WEIGHT +
         fundamental_score * FUNDAMENTAL_WEIGHT +
@@ -322,8 +215,25 @@ def validate_technical_score(score: float) -> float:
         return 0.5  # Default neutral score
     return max(0.0, min(1.0, float(score)))
 
+def get_position_size_for_category(base_size: float, category: str, volatility: str, market_cap_type: str) -> float:
+    """Calculate adjusted position size based on stock characteristics"""
+    
+    adjusted_size = base_size
+    adjusted_size *= CATEGORY_MULTIPLIER.get(category, 1.0)
+    adjusted_size *= VOLATILITY_POSITION_MULTIPLIER.get(volatility, 1.0)
+    adjusted_size *= MARKET_CAP_MULTIPLIER.get(market_cap_type, 1.0)
+    
+    # Ensure within limits
+    adjusted_size = max(MIN_POSITION_SIZE, adjusted_size)
+    adjusted_size = min(TOTAL_CAPITAL * MAX_POSITION_SIZE_PERCENT / 100, adjusted_size)
+    
+    return round(adjusted_size, 0)
+
+# Update current quarter on import
+CURRENT_QUARTER = get_current_quarter()
+
 # ==========================================
-# VALIDATION - Basic checks for Day 1
+# VALIDATION - Basic checks for Day 1/2
 # ==========================================
 
 def validate_config():
@@ -333,9 +243,8 @@ def validate_config():
         assert 0 < RISK_PER_TRADE <= 20, "Risk per trade must be between 0 and 20%"
         assert MIN_CONFIDENCE_THRESHOLD <= 1.0, "Confidence threshold must be <= 1.0"
         assert MIN_RISK_REWARD_RATIO >= 1.0, "Risk-reward ratio must be >= 1.0"
+        print("✓ Configuration validation passed")
         return True
     except AssertionError as e:
-        print(f"Configuration validation error: {e}")
+        print(f"✗ Configuration validation error: {e}")
         return False
-
-# Note: Validation is not run automatically to avoid import-time errors

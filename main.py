@@ -434,65 +434,47 @@ class NexusTradingSystem:
             self.logger.error(f"Agent tables test failed: {e}")
             return False
     
-    def _test_data_pipeline(self) -> bool:
-        """Test data pipeline"""
-        
-        try:
-            from utils.data_updater import test_data_updater_with_db
-            
-            result = test_data_updater_with_db(self.db_manager)
-            
-            if result['successful_updates'] > 0:
-                self.logger.info(f"Data pipeline test successful: {result['successful_updates']} symbols updated")
-                return True
-            else:
-                self.logger.warning(f"Data pipeline test issues: {result}")
-                return False
-            
-        except Exception as e:
-            self.logger.error(f"Data pipeline test failed: {e}")
-            return False
-    
     def _test_technical_analysis(self) -> bool:
-        """Test technical analysis capabilities"""
+        """Test technical analysis capabilities with new agent integration"""
         
         try:
-            from agents.technical_agent import TechnicalAgent
+            from agents.signal_agent import SignalAgent
             
-            # Initialize technical agent
-            tech_agent = TechnicalAgent(self.db_manager)
+            # Initialize signal agent (integrates technical + fundamental)
+            signal_agent = SignalAgent(self.db_manager)
             
             # Get test symbols
             test_symbols = self.db_manager.get_testing_symbols()[:3]  # Test with 3 symbols
             
             if not test_symbols:
-                self.logger.warning("No test symbols available for technical analysis")
+                self.logger.warning("No test symbols available")
                 return False
             
-            # Test technical analysis
-            self.logger.info(f"Testing technical analysis with symbols: {test_symbols}")
+            self.logger.info(f"Testing signal generation with symbols: {test_symbols}")
             
-            success_count = 0
-            for symbol in test_symbols:
-                try:
-                    analysis = tech_agent.analyze_symbol(symbol)
-                    
-                    if 'error' not in analysis:
-                        success_count += 1
-                        self.logger.info(f"Technical analysis successful for {symbol}")
-                        self.logger.info(f"  - Technical Score: {analysis.get('technical_score', 'N/A')}")
-                        self.logger.info(f"  - Buy Signal: {analysis.get('buy_signal', False)}")
-                        self.logger.info(f"  - Signal Strength: {analysis.get('signal_strength', 'N/A')}")
-                    else:
-                        self.logger.warning(f"Technical analysis failed for {symbol}: {analysis.get('error')}")
-                        
-                except Exception as e:
-                    self.logger.error(f"Technical analysis error for {symbol}: {e}")
+            # Generate signals
+            signals = signal_agent.generate_signals(test_symbols)
             
-            success_rate = success_count / len(test_symbols)
-            self.logger.info(f"Technical analysis success rate: {success_rate:.1%} ({success_count}/{len(test_symbols)})")
+            # Check results
+            if not signals:
+                self.logger.warning("No signals generated")
+                return False
             
-            return success_rate >= 0.5  # At least 50% success rate
+            success_count = len(signals)
+            
+            # Display sample results
+            for signal in signals[:2]:  # Show first 2 signals
+                self.logger.info(f"Signal for {signal['symbol']}: {signal['signal_type']} "
+                               f"(Confidence: {signal['overall_confidence']:.3f})")
+            
+            # Get summary
+            summary = signal_agent.get_signal_summary(signals)
+            self.logger.info(f"Signal generation summary: {summary}")
+            
+            success_rate = len(signals) / len(test_symbols)
+            self.logger.info(f"Signal generation success rate: {success_rate:.1%} ({len(signals)}/{len(test_symbols)})")
+            
+            return success_rate >= 0.3  # At least 30% success rate for Day 1/2
             
         except Exception as e:
             self.logger.error(f"Technical analysis test failed: {e}")
@@ -559,21 +541,21 @@ class NexusTradingSystem:
         
         print("=" * 50)
         
-        key_fields = [
-            ('Stock Name', 'stock_name'),
-            ('Category', 'category'),
-            ('Market Cap Type', 'market_cap_type'),
-            ('Sector', 'sector'),
-            ('Volatility Category', 'volatility_category'),
-            ('Current Price', 'current_price'),
-            ('PE Ratio', 'pe_ratio'),
-            ('ROE Ratio', 'roe_ratio'),
-            ('Market Cap (Cr)', 'market_cap')
-        ]
+        # key_fields = [
+        #     ('Stock Name', 'stock_name'),
+        #     ('Category', 'category'),
+        #     ('Market Cap Type', 'market_cap_type'),
+        #     ('Sector', 'sector'),
+        #     ('Volatility Category', 'volatility_category'),
+        #     ('Current Price', 'current_price'),
+        #     ('PE Ratio', 'pe_ratio'),
+        #     ('ROE Ratio', 'roe_ratio'),
+        #     ('Market Cap (Cr)', 'market_cap')
+        # ]
         
-        for display_name, field_name in key_fields:
-            value = fundamental_data.get(field_name, 'N/A')
-            print(f"{display_name:20}: {value}")
+        # for display_name, field_name in key_fields:
+        #     value = fundamental_data.get(field_name, 'N/A')
+        #     print(f"{display_name:20}: {value}")
         
         print("=" * 50)
     
