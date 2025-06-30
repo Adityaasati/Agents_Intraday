@@ -1,0 +1,264 @@
+2025-06-30 18:09:26,074 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:09:26,075 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:09:26,075 | INFO     | nexus_trading.main   | Mode: setup
+2025-06-30 18:09:26,075 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:09:26,075 | INFO     | nexus_trading.main   | Starting SETUP mode...
+2025-06-30 18:09:26,076 | INFO     | nexus_trading.main   | Directory created/verified: logs
+2025-06-30 18:09:26,076 | INFO     | nexus_trading.main   | Directory created/verified: data
+2025-06-30 18:09:26,077 | INFO     | nexus_trading.main   | Directory created/verified: config
+2025-06-30 18:09:26,078 | INFO     | nexus_trading.main   | Directory created/verified: temp
+2025-06-30 18:09:27,591 | INFO     | nexus_trading.main   | Core dependencies verified
+2025-06-30 18:09:27,591 | INFO     | nexus_trading.main   | Setup completed successfully
+2025-06-30 18:09:27,592 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:09:27,592 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:09:44,706 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:09:44,706 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:09:44,707 | INFO     | nexus_trading.main   | Mode: test
+2025-06-30 18:09:44,707 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:09:44,707 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-06-30 18:09:44,708 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-06-30 18:09:45,722 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-06-30 18:09:45,722 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-06-30 18:09:46,207 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-06-30 18:09:46,208 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-06-30 18:09:49,702 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:09:49,726 | INFO     | nexus_trading.main   | Database connection successful
+2025-06-30 18:09:49,727 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 0}
+2025-06-30 18:09:49,727 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-06-30 18:09:49,730 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-06-30 18:09:49,730 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-06-30 18:09:49,733 | INFO     | nexus_trading.main   | Found 0 historical data quarters
+2025-06-30 18:09:49,733 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-06-30 18:09:49,943 | INFO     | database.schema_creator | Created table: agent_symbol_integration
+2025-06-30 18:09:50,127 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-06-30 18:09:50,127 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-06-30 18:09:50,225 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-06-30 18:09:50,226 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-06-30 18:09:50,295 | INFO     | nexus_trading.main   | All essential tables verified
+2025-06-30 18:09:50,295 | INFO     | nexus_trading.main   | Test 5: Data pipeline...
+2025-06-30 18:09:50,322 | ERROR    | database.enhanced_database_manager | Query execution failed: relation "historical_data_3m_2025_q2" does not exist
+LINE 2:             SELECT * FROM historical_data_3m_2025_q2
+                                  ^
+
+2025-06-30 18:09:50,345 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:09:50,354 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-06-30 18:09:50,356 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:09:50,358 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-06-30 18:09:50,358 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-06-30 18:09:50,360 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:09:50,360 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:05,078 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:05,078 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:10:05,078 | INFO     | nexus_trading.main   | Mode: demo
+2025-06-30 18:10:05,079 | INFO     | nexus_trading.main   | Symbol: RELIANCE
+2025-06-30 18:10:05,079 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:05,079 | INFO     | nexus_trading.main   | Starting DEMO mode for symbol: RELIANCE
+2025-06-30 18:10:06,255 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:10:06,286 | INFO     | nexus_trading.main   | Loading fundamental data for RELIANCE...
+2025-06-30 18:10:06,299 | INFO     | nexus_trading.main   | Loading historical data for RELIANCE...
+2025-06-30 18:10:06,330 | INFO     | nexus_trading.main   | Found 1 historical records
+2025-06-30 18:10:06,335 | INFO     | nexus_trading.main   | Date range: 2025-06-30 18:09:50.322704 to 2025-06-30 18:09:50.322704
+2025-06-30 18:10:06,336 | INFO     | nexus_trading.main   | Testing data pipeline...
+2025-06-30 18:10:06,342 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:10:06,344 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-06-30 18:10:06,345 | INFO     | nexus_trading.main   | Data pipeline test: {'total_symbols': 1, 'successful_updates': 1, 'failed_updates': 0, 'errors': []}
+2025-06-30 18:10:06,345 | INFO     | nexus_trading.main   | Demo completed successfully for RELIANCE
+2025-06-30 18:10:06,345 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:10:06,346 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:26,785 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:26,785 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:10:26,785 | INFO     | nexus_trading.main   | Mode: integration
+2025-06-30 18:10:26,786 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:10:26,786 | INFO     | nexus_trading.main   | Starting INTEGRATION mode...
+2025-06-30 18:10:26,786 | INFO     | nexus_trading.main   | Integration Phase: Environment Check
+2025-06-30 18:10:27,762 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-06-30 18:10:27,762 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-06-30 18:10:28,140 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-06-30 18:10:28,140 | INFO     | nexus_trading.main   | Phase Environment Check: PASSED
+2025-06-30 18:10:28,141 | INFO     | nexus_trading.main   | Integration Phase: Database Integration
+2025-06-30 18:10:28,319 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:10:28,339 | INFO     | nexus_trading.main   | Database connection successful
+2025-06-30 18:10:28,339 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 1}
+2025-06-30 18:10:28,339 | INFO     | nexus_trading.main   | Phase Database Integration: PASSED
+2025-06-30 18:10:28,339 | INFO     | nexus_trading.main   | Integration Phase: Schema Creation
+2025-06-30 18:10:28,644 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-06-30 18:10:28,644 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-06-30 18:10:28,698 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-06-30 18:10:28,699 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-06-30 18:10:28,765 | INFO     | nexus_trading.main   | All essential tables verified
+2025-06-30 18:10:28,766 | INFO     | nexus_trading.main   | Phase Schema Creation: PASSED
+2025-06-30 18:10:28,766 | INFO     | nexus_trading.main   | Integration Phase: Data Access Test
+2025-06-30 18:10:28,768 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-06-30 18:10:28,768 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-06-30 18:10:28,770 | INFO     | nexus_trading.main   | Found 1 historical data quarters
+2025-06-30 18:10:28,771 | INFO     | nexus_trading.main   | Phase Data Access Test: PASSED
+2025-06-30 18:10:28,771 | INFO     | nexus_trading.main   | Integration Phase: System Health Check
+2025-06-30 18:10:28,774 | INFO     | nexus_trading.main   | Final system health: {'total_symbols': 12, 'available_quarters': 1}
+2025-06-30 18:10:28,774 | INFO     | nexus_trading.main   | Phase System Health Check: PASSED
+2025-06-30 18:10:28,776 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:10:28,776 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:52:47,343 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:52:47,355 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:52:47,355 | INFO     | nexus_trading.main   | Mode: test
+2025-06-30 18:52:47,355 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:52:47,356 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-06-30 18:52:47,356 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-06-30 18:52:47,864 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-06-30 18:52:47,865 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-06-30 18:52:48,066 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-06-30 18:52:48,067 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-06-30 18:52:48,178 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:52:48,189 | INFO     | nexus_trading.main   | Database connection successful
+2025-06-30 18:52:48,189 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 1}
+2025-06-30 18:52:48,190 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-06-30 18:52:48,191 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-06-30 18:52:48,191 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-06-30 18:52:48,192 | INFO     | nexus_trading.main   | Found 1 historical data quarters
+2025-06-30 18:52:48,192 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-06-30 18:52:48,362 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-06-30 18:52:48,362 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-06-30 18:52:48,395 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-06-30 18:52:48,396 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-06-30 18:52:48,435 | INFO     | nexus_trading.main   | All essential tables verified
+2025-06-30 18:52:48,435 | INFO     | nexus_trading.main   | Test 5: Data pipeline...
+2025-06-30 18:52:48,441 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:52:48,443 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-06-30 18:52:48,444 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:52:48,445 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-06-30 18:52:48,445 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-06-30 18:52:48,445 | INFO     | nexus_trading.main   | Test 6: Technical analysis...
+2025-06-30 18:52:48,457 | WARNING  | agents.technical_agent | pandas_ta not available, using manual calculations
+2025-06-30 18:52:48,459 | INFO     | nexus_trading.main   | Testing technical analysis with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-06-30 18:52:48,463 | WARNING  | agents.technical_agent | Insufficient data for RELIANCE: 3 records
+2025-06-30 18:52:48,463 | WARNING  | nexus_trading.main   | Technical analysis failed for RELIANCE: insufficient_data
+2025-06-30 18:52:48,465 | WARNING  | agents.technical_agent | No historical data for HDFCBANK, using synthetic data for testing
+2025-06-30 18:52:48,480 | ERROR    | database.enhanced_database_manager | Failed to store technical indicators: column "close_price" of relation "agent_technical_indicators" does not exist
+LINE 3:                     symbol, date, timeframe, close_price, 
+                                                     ^
+
+2025-06-30 18:52:48,480 | INFO     | nexus_trading.main   | Technical analysis successful for HDFCBANK
+2025-06-30 18:52:48,480 | INFO     | nexus_trading.main   |   - Technical Score: 0.496
+2025-06-30 18:52:48,480 | INFO     | nexus_trading.main   |   - Buy Signal: False
+2025-06-30 18:52:48,480 | INFO     | nexus_trading.main   |   - Signal Strength: weak
+2025-06-30 18:52:48,482 | WARNING  | agents.technical_agent | No historical data for ICICIBANK, using synthetic data for testing
+2025-06-30 18:52:48,491 | ERROR    | database.enhanced_database_manager | Failed to store technical indicators: column "close_price" of relation "agent_technical_indicators" does not exist
+LINE 3:                     symbol, date, timeframe, close_price, 
+                                                     ^
+
+2025-06-30 18:52:48,491 | INFO     | nexus_trading.main   | Technical analysis successful for ICICIBANK
+2025-06-30 18:52:48,492 | INFO     | nexus_trading.main   |   - Technical Score: 0.44
+2025-06-30 18:52:48,492 | INFO     | nexus_trading.main   |   - Buy Signal: False
+2025-06-30 18:52:48,492 | INFO     | nexus_trading.main   |   - Signal Strength: weak
+2025-06-30 18:52:48,492 | INFO     | nexus_trading.main   | Technical analysis success rate: 66.7% (2/3)
+2025-06-30 18:52:48,493 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:52:48,493 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:00,233 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:00,234 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:53:00,234 | INFO     | nexus_trading.main   | Mode: demo
+2025-06-30 18:53:00,234 | INFO     | nexus_trading.main   | Symbol: RELIANCE
+2025-06-30 18:53:00,234 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:00,234 | INFO     | nexus_trading.main   | Starting DEMO mode for symbol: RELIANCE
+2025-06-30 18:53:00,873 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:53:00,873 | INFO     | nexus_trading.main   | Loading fundamental data for RELIANCE...
+2025-06-30 18:53:00,879 | INFO     | nexus_trading.main   | Loading historical data for RELIANCE...
+2025-06-30 18:53:00,889 | INFO     | nexus_trading.main   | Found 3 historical records
+2025-06-30 18:53:00,891 | INFO     | nexus_trading.main   | Date range: 2025-06-30 18:09:50.322704 to 2025-06-30 18:52:48.440620
+2025-06-30 18:53:00,891 | INFO     | nexus_trading.main   | Testing data pipeline...
+2025-06-30 18:53:00,894 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 18:53:00,906 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-06-30 18:53:00,907 | INFO     | nexus_trading.main   | Data pipeline test: {'total_symbols': 1, 'successful_updates': 1, 'failed_updates': 0, 'errors': []}
+2025-06-30 18:53:00,907 | INFO     | nexus_trading.main   | Testing technical analysis...
+2025-06-30 18:53:01,113 | WARNING  | agents.technical_agent | pandas_ta not available, using manual calculations
+2025-06-30 18:53:01,116 | WARNING  | agents.technical_agent | Insufficient data for RELIANCE: 4 records
+2025-06-30 18:53:01,116 | WARNING  | nexus_trading.main   | Technical analysis error: insufficient_data
+2025-06-30 18:53:01,116 | INFO     | nexus_trading.main   | Demo completed successfully for RELIANCE
+2025-06-30 18:53:01,116 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:53:01,116 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:51,438 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:51,439 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 18:53:51,439 | INFO     | nexus_trading.main   | Mode: integration
+2025-06-30 18:53:51,439 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 18:53:51,439 | INFO     | nexus_trading.main   | Starting INTEGRATION mode...
+2025-06-30 18:53:51,439 | INFO     | nexus_trading.main   | Integration Phase: Environment Check
+2025-06-30 18:53:51,962 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-06-30 18:53:51,962 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-06-30 18:53:52,164 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-06-30 18:53:52,165 | INFO     | nexus_trading.main   | Phase Environment Check: PASSED
+2025-06-30 18:53:52,165 | INFO     | nexus_trading.main   | Integration Phase: Database Integration
+2025-06-30 18:53:52,281 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 18:53:52,293 | INFO     | nexus_trading.main   | Database connection successful
+2025-06-30 18:53:52,293 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 1}
+2025-06-30 18:53:52,293 | INFO     | nexus_trading.main   | Phase Database Integration: PASSED
+2025-06-30 18:53:52,293 | INFO     | nexus_trading.main   | Integration Phase: Schema Creation
+2025-06-30 18:53:52,463 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-06-30 18:53:52,463 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-06-30 18:53:52,494 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-06-30 18:53:52,494 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-06-30 18:53:52,532 | INFO     | nexus_trading.main   | All essential tables verified
+2025-06-30 18:53:52,533 | INFO     | nexus_trading.main   | Phase Schema Creation: PASSED
+2025-06-30 18:53:52,533 | INFO     | nexus_trading.main   | Integration Phase: Data Access Test
+2025-06-30 18:53:52,534 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-06-30 18:53:52,534 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-06-30 18:53:52,536 | INFO     | nexus_trading.main   | Found 1 historical data quarters
+2025-06-30 18:53:52,536 | INFO     | nexus_trading.main   | Phase Data Access Test: PASSED
+2025-06-30 18:53:52,536 | INFO     | nexus_trading.main   | Integration Phase: Technical Analysis
+2025-06-30 18:53:52,547 | WARNING  | agents.technical_agent | pandas_ta not available, using manual calculations
+2025-06-30 18:53:52,549 | INFO     | nexus_trading.main   | Testing technical analysis with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-06-30 18:53:52,554 | WARNING  | agents.technical_agent | Insufficient data for RELIANCE: 4 records
+2025-06-30 18:53:52,555 | WARNING  | nexus_trading.main   | Technical analysis failed for RELIANCE: insufficient_data
+2025-06-30 18:53:52,557 | WARNING  | agents.technical_agent | No historical data for HDFCBANK, using synthetic data for testing
+2025-06-30 18:53:52,572 | ERROR    | database.enhanced_database_manager | Failed to store technical indicators: column "close_price" of relation "agent_technical_indicators" does not exist
+LINE 3:                     symbol, date, timeframe, close_price, 
+                                                     ^
+
+2025-06-30 18:53:52,572 | INFO     | nexus_trading.main   | Technical analysis successful for HDFCBANK
+2025-06-30 18:53:52,572 | INFO     | nexus_trading.main   |   - Technical Score: 0.55
+2025-06-30 18:53:52,572 | INFO     | nexus_trading.main   |   - Buy Signal: False
+2025-06-30 18:53:52,572 | INFO     | nexus_trading.main   |   - Signal Strength: weak
+2025-06-30 18:53:52,574 | WARNING  | agents.technical_agent | No historical data for ICICIBANK, using synthetic data for testing
+2025-06-30 18:53:52,582 | ERROR    | database.enhanced_database_manager | Failed to store technical indicators: column "close_price" of relation "agent_technical_indicators" does not exist
+LINE 3:                     symbol, date, timeframe, close_price, 
+                                                     ^
+
+2025-06-30 18:53:52,582 | INFO     | nexus_trading.main   | Technical analysis successful for ICICIBANK
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   |   - Technical Score: 0.518
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   |   - Buy Signal: False
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   |   - Signal Strength: weak
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   | Technical analysis success rate: 66.7% (2/3)
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   | Phase Technical Analysis: PASSED
+2025-06-30 18:53:52,583 | INFO     | nexus_trading.main   | Integration Phase: System Health Check
+2025-06-30 18:53:52,585 | INFO     | nexus_trading.main   | Final system health: {'total_symbols': 12, 'available_quarters': 1}
+2025-06-30 18:53:52,585 | INFO     | nexus_trading.main   | Phase System Health Check: PASSED
+2025-06-30 18:53:52,586 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 18:53:52,586 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | Mode: demo
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | Symbol: RELIANCE
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | ==================================================
+2025-06-30 19:41:00,953 | INFO     | nexus_trading.main   | Starting DEMO mode for symbol: RELIANCE
+2025-06-30 19:41:01,730 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-06-30 19:41:01,730 | INFO     | nexus_trading.main   | Loading fundamental data for RELIANCE...
+2025-06-30 19:41:01,736 | INFO     | nexus_trading.main   | Loading historical data for RELIANCE...
+2025-06-30 19:41:01,745 | INFO     | nexus_trading.main   | Found 4 historical records
+2025-06-30 19:41:01,747 | INFO     | nexus_trading.main   | Date range: 2025-06-30 18:09:50.322704 to 2025-06-30 18:53:00.893824
+2025-06-30 19:41:01,747 | INFO     | nexus_trading.main   | Testing data pipeline...
+2025-06-30 19:41:01,762 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q2
+2025-06-30 19:41:01,764 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-06-30 19:41:01,764 | INFO     | nexus_trading.main   | Data pipeline test: {'total_symbols': 1, 'successful_updates': 1, 'failed_updates': 0, 'errors': []}
+2025-06-30 19:41:01,764 | INFO     | nexus_trading.main   | Testing technical analysis...
+2025-06-30 19:41:01,967 | WARNING  | agents.technical_agent | pandas_ta not available, using manual calculations
+2025-06-30 19:41:01,970 | WARNING  | agents.technical_agent | Insufficient data for RELIANCE: 5 records, supplementing with synthetic data
+2025-06-30 19:41:01,974 | INFO     | agents.technical_agent | Supplemented RELIANCE data: now 55 records
+2025-06-30 19:41:01,990 | ERROR    | nexus_trading.main   | Demo mode failed: name 'fundamental_data' is not defined
+2025-06-30 19:41:01,994 | ERROR    | nexus_trading.main   | Traceback (most recent call last):
+  File "C:\Agents_Intraday\nexus_trading\main.py", line 293, in _demo_mode
+    self._display_technical_analysis(symbol, analysis)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "C:\Agents_Intraday\nexus_trading\main.py", line 575, in _display_technical_analysis
+    value = fundamental_data.get(field_name, 'N/A')
+            ^^^^^^^^^^^^^^^^
+NameError: name 'fundamental_data' is not defined
+
+2025-06-30 19:41:01,994 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-06-30 19:41:01,994 | INFO     | nexus_trading.main   | ==================================================
