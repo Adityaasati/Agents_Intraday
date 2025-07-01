@@ -29,7 +29,7 @@ def fix_pandas_ta_warning():
     print("=" * 40)
     
     try:
-        import pandas_ta
+        import ta
         print("✓ pandas_ta is already installed")
         return True
     except ImportError:

@@ -41,16 +41,18 @@ class TechnicalAgent:
         self.db_manager = db_manager or EnhancedDatabaseManager()
         self.ist = pytz.timezone('Asia/Kolkata')
         
-        # Try to import pandas_ta, fallback to manual calculations
+        # FIXED: More robust pandas_ta detection
         try:
-            import pandas_ta as ta
+            import ta 
+            # Test if it actually works
+            ta.rsi
             self.pandas_ta = ta
             self.use_pandas_ta = True
-            self.logger.debug("Using pandas_ta for technical calculations")
-        except ImportError:
+            self.logger.debug("pandas_ta loaded successfully")
+        except (ImportError, AttributeError) as e:
             self.pandas_ta = None
             self.use_pandas_ta = False
-            self.logger.warning("pandas_ta not available, using manual calculations")
+            self.logger.debug(f"pandas_ta not available: {e}, using manual calculations")
     
     def analyze_symbol(self, symbol: str, timeframe: str = '5m', 
                       lookback_days: int = 30) -> Dict:

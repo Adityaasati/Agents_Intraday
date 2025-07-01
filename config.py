@@ -129,6 +129,17 @@ MARKET_END_TIME = "15:30"
 # SYMBOL SELECTION CRITERIA
 # ==========================================
 
+# News Sentiment Configuration
+MAX_NEWS_ARTICLES_PER_SYMBOL = 8        # Articles to analyze per symbol
+MAX_MARKET_NEWS_ARTICLES = 12           # Market news articles
+NEWS_FETCH_TIMEOUT = 10                 # News fetching timeout (seconds)
+CLAUDE_API_TIMEOUT = 15                 # Claude API timeout (seconds)
+
+# Sentiment Impact Weights
+HIGH_IMPACT_WEIGHT = 1.5      # High impact news multiplier
+MEDIUM_IMPACT_WEIGHT = 1.0    # Medium impact news multiplier
+LOW_IMPACT_WEIGHT = 0.7       # Low impact news multiplier
+
 # Default Filtering Criteria for Day 1/2
 DEFAULT_CATEGORIES = ['A', 'B']  # Exclude C-category initially
 DEFAULT_MARKET_CAP_TYPES = ['Large_Cap', 'Mid_Cap']  # Exclude Small_Cap initially

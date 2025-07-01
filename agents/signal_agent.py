@@ -38,6 +38,13 @@ class SignalAgent:
         # Initialize sub-agents
         self.technical_agent = TechnicalAgent(db_manager)
         self.fundamental_agent = FundamentalAgent(db_manager)
+        
+        try:
+            from agents.news_sentiment_agent import NewsSentimentAgent
+            self.sentiment_agent = NewsSentimentAgent(db_manager)
+        except ImportError:
+            self.logger.warning("News sentiment agent not available")
+            self.sentiment_agent = None
     
     def generate_signals(self, symbols: List[str], limit: int = 10) -> List[Dict]:
         """Generate trading signals for symbol list"""
@@ -80,6 +87,28 @@ class SignalAgent:
         
         return signals
     
+    def _get_sentiment_score(self, symbol: str) -> float:
+        """Get sentiment score for symbol - Day 3A implementation"""
+        
+        if not self.sentiment_agent:
+            return 0.5  # Fallback to neutral
+        
+        try:
+            # Try to get recent cached sentiment first
+            recent_sentiment = self.db_manager.get_recent_sentiment(symbol, hours_back=6)
+            
+            if recent_sentiment:
+                return recent_sentiment.get('sentiment_score', 0.5)
+            
+            # Analyze fresh sentiment
+            sentiment_result = self.sentiment_agent.analyze_symbol_sentiment(symbol, hours_back=24)
+            
+            return sentiment_result.get('sentiment_score', 0.5)
+            
+        except Exception as e:
+            self.logger.warning(f"Sentiment analysis failed for {symbol}: {e}")
+            return 0.5
+    
     def _analyze_single_symbol(self, symbol: str) -> Optional[Dict]:
         """Complete analysis for single symbol"""
         
@@ -102,7 +131,7 @@ class SignalAgent:
             
             # Extract scores
             technical_score = technical_analysis.get('technical_score', 0.5)
-            sentiment_score = 0.5  # Placeholder for Day 3
+            sentiment_score = self._get_sentiment_score(symbol)
             
             # Calculate overall confidence
             category = technical_analysis.get('category', 'B')

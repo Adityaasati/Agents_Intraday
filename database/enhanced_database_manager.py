@@ -8,6 +8,8 @@ import logging
 from datetime import datetime, timedelta
 import pytz
 from typing import List, Dict, Optional, Tuple, Any
+from pathlib import Path
+
 
 class EnhancedDatabaseManager:
     """Simplified Database Manager for Day 1 - Nexus Trading System"""
@@ -148,9 +150,11 @@ class EnhancedDatabaseManager:
         result = self.execute_query(query)
         return [row['table_name'] for row in result]
     
+    # Update the get_historical_data method to auto-create current quarter table
+
     def get_historical_data(self, symbol: str, start_date: datetime = None, 
-                          end_date: datetime = None, limit: int = 1000) -> pd.DataFrame:
-        """Get historical OHLCV data from quarterly tables - simplified for Day 1"""
+                        end_date: datetime = None, limit: int = 1000) -> pd.DataFrame:
+        """Get historical OHLCV data from quarterly tables - with auto-create"""
         
         if not end_date:
             end_date = datetime.now(self.ist)
@@ -160,12 +164,21 @@ class EnhancedDatabaseManager:
         # Get available quarters
         quarters = self.get_available_quarters()
         
+        # Auto-create current quarter table if it doesn't exist
+        current_quarter = f"historical_data_3m_{end_date.year}_q{((end_date.month - 1) // 3) + 1}"
+        if current_quarter not in quarters:
+            self.logger.info(f"Creating missing quarter table: {current_quarter}")
+            year = end_date.year
+            quarter = ((end_date.month - 1) // 3) + 1
+            if self.create_quarterly_table(year, quarter):
+                quarters.append(current_quarter)
+        
         if not quarters:
             self.logger.warning("No historical data tables found")
             return pd.DataFrame()
         
         all_data = []
-        for quarter_table in quarters[:2]:  # Check only latest 2 quarters for Day 1
+        for quarter_table in quarters[:2]:  # Check only latest 2 quarters
             try:
                 query = f"""
                 SELECT symbol, date, open, high, low, close, volume
@@ -179,7 +192,7 @@ class EnhancedDatabaseManager:
                 data = self.execute_query(query, (symbol, start_date, end_date, limit))
                 all_data.extend(data)
                 
-                if len(all_data) >= limit:  # Stop if we have enough data
+                if len(all_data) >= limit:
                     break
                     
             except Exception as e:
@@ -392,3 +405,206 @@ class EnhancedDatabaseManager:
         if self.connection_pool:
             self.connection_pool.closeall()
             self.logger.info("Database connections closed")
+    
+    # Add these methods to the existing EnhancedDatabaseManager class
+
+    def store_sentiment_data(self, sentiment_data: Dict) -> bool:
+        """Store sentiment analysis results - Day 3A implementation"""
+        
+        try:
+            # Simple storage in agent_system_config for Day 3A
+            # Will be enhanced with dedicated table in Day 3B
+            
+            config_key = f"sentiment_{sentiment_data['symbol']}_{datetime.now().strftime('%Y%m%d_%H')}"
+            config_value = json.dumps({
+                'sentiment_score': sentiment_data['sentiment_score'],
+                'articles_count': sentiment_data['articles_count'],
+                'analysis_time': sentiment_data['analysis_time'].isoformat(),
+                'raw_results': sentiment_data.get('raw_results', [])
+            })
+            
+            insert_query = """
+            INSERT INTO agent_system_config 
+            (config_key, config_value, config_type, description, category)
+            VALUES (%s, %s, 'json', 'Sentiment analysis data', 'sentiment')
+            ON CONFLICT (config_key) DO UPDATE SET
+                config_value = EXCLUDED.config_value,
+                updated_at = CURRENT_TIMESTAMP
+            """
+            
+            self.execute_query(insert_query, (config_key, config_value), fetch=False)
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store sentiment data: {e}")
+            return False
+
+    def get_recent_sentiment(self, symbol: str, hours_back: int = 24) -> Optional[Dict]:
+        """Get recent sentiment data for symbol"""
+        
+        try:
+            cutoff_time = datetime.now(self.ist) - timedelta(hours=hours_back)
+            
+            query = """
+            SELECT config_value FROM agent_system_config 
+            WHERE config_key LIKE %s 
+            AND category = 'sentiment'
+            AND updated_at > %s
+            ORDER BY updated_at DESC
+            LIMIT 1
+            """
+            
+            result = self.execute_query(query, (f"sentiment_{symbol}_%", cutoff_time))
+            
+            if result:
+                import json
+                return json.loads(result[0]['config_value'])
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get sentiment data for {symbol}: {e}")
+            return None
+        
+
+    def store_enhanced_sentiment_analysis(self, analysis_data: Dict) -> bool:
+        """Store enhanced sentiment analysis in dedicated table"""
+        
+        try:
+            insert_query = """
+            INSERT INTO agent_sentiment_analysis (
+                symbol, analysis_time, sentiment_score, confidence, impact_score,
+                articles_analyzed, primary_event_type, momentum_score, 
+                trend_direction, data_source
+            ) VALUES (
+                %(symbol)s, %(analysis_time)s, %(sentiment_score)s, %(confidence)s, 
+                %(impact_score)s, %(articles_analyzed)s, %(primary_event_type)s,
+                %(momentum_score)s, %(trend_direction)s, %(data_source)s
+            )
+            ON CONFLICT (symbol, analysis_time) DO UPDATE SET
+                sentiment_score = EXCLUDED.sentiment_score,
+                confidence = EXCLUDED.confidence,
+                impact_score = EXCLUDED.impact_score,
+                articles_analyzed = EXCLUDED.articles_analyzed,
+                primary_event_type = EXCLUDED.primary_event_type,
+                momentum_score = EXCLUDED.momentum_score,
+                trend_direction = EXCLUDED.trend_direction
+            """
+            
+            self.execute_query(insert_query, analysis_data, fetch=False)
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store enhanced sentiment: {e}")
+            return False
+
+    def get_sentiment_history(self, symbol: str, days_back: int = 7) -> List[Dict]:
+        """Get sentiment history for momentum analysis"""
+        
+        try:
+            cutoff_time = datetime.now(self.ist) - timedelta(days=days_back)
+            
+            query = """
+            SELECT sentiment_score, confidence, momentum_score, trend_direction, analysis_time
+            FROM agent_sentiment_analysis 
+            WHERE symbol = %s AND analysis_time > %s
+            ORDER BY analysis_time ASC
+            """
+            
+            return self.execute_query(query, (symbol, cutoff_time))
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get sentiment history for {symbol}: {e}")
+            return []
+
+    def get_latest_sentiment(self, symbol: str) -> Optional[Dict]:
+        """Get latest sentiment for symbol"""
+        
+        try:
+            query = """
+            SELECT sentiment_score, confidence, momentum_score, trend_direction, 
+                primary_event_type, analysis_time
+            FROM agent_sentiment_analysis 
+            WHERE symbol = %s 
+            ORDER BY analysis_time DESC 
+            LIMIT 1
+            """
+            
+            result = self.execute_query(query, (symbol,))
+            return result[0] if result else None
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get latest sentiment for {symbol}: {e}")
+            return None
+
+    def store_market_sentiment(self, market_data: Dict) -> bool:
+        """Store market-wide sentiment analysis"""
+        
+        try:
+            insert_query = """
+            INSERT INTO agent_market_sentiment (
+                analysis_time, market_sentiment_score, articles_analyzed, 
+                primary_themes, data_sources
+            ) VALUES (
+                %(analysis_time)s, %(market_sentiment_score)s, %(articles_analyzed)s,
+                %(primary_themes)s, %(data_sources)s
+            )
+            ON CONFLICT (analysis_time) DO UPDATE SET
+                market_sentiment_score = EXCLUDED.market_sentiment_score,
+                articles_analyzed = EXCLUDED.articles_analyzed,
+                primary_themes = EXCLUDED.primary_themes,
+                data_sources = EXCLUDED.data_sources
+            """
+            
+            self.execute_query(insert_query, market_data, fetch=False)
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to store market sentiment: {e}")
+            return False
+
+
+
+
+
+    def create_sentiment_tables(self) -> bool:
+        """Create sentiment analysis tables for Day 3B - CORRECTED"""
+        
+        try:
+            # Correct schema without foreign key reference issues
+            schema_sql = """
+            CREATE TABLE IF NOT EXISTS agent_sentiment_analysis (
+                id SERIAL PRIMARY KEY,
+                symbol VARCHAR(20) NOT NULL,
+                analysis_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                sentiment_score DECIMAL(3,2) NOT NULL,
+                confidence DECIMAL(3,2),
+                impact_score DECIMAL(3,2),
+                articles_analyzed INTEGER DEFAULT 0,
+                primary_event_type VARCHAR(20),
+                momentum_score DECIMAL(4,3),
+                trend_direction VARCHAR(10),
+                data_source VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(symbol, analysis_time)
+            );
+            
+            CREATE INDEX IF NOT EXISTS idx_sentiment_analysis_symbol_time ON agent_sentiment_analysis(symbol, analysis_time);
+            
+            CREATE TABLE IF NOT EXISTS agent_market_sentiment (
+                id SERIAL PRIMARY KEY,
+                analysis_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                market_sentiment_score DECIMAL(3,2) NOT NULL,
+                articles_analyzed INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(analysis_time)
+            );
+            """
+            
+            self.execute_query(schema_sql, fetch=False)
+            self.logger.info("Sentiment tables created successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create sentiment tables: {e}")
+            return False
