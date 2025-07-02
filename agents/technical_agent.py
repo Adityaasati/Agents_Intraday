@@ -108,6 +108,109 @@ class TechnicalAgent:
             self.logger.error(f"Technical analysis failed for {symbol}: {e}")
             return {'symbol': symbol, 'error': str(e)}
     
+    def analyze_with_optimization(self, symbol: str, timeframe: str = '5m', lookback_days: int = 30) -> Dict:
+        """Enhanced analysis with parameter optimization and regime detection"""
+        
+        try:
+            # Get base analysis
+            analysis = self.analyze_symbol(symbol, timeframe, lookback_days)
+            
+            # Get historical data for optimization
+            end_date = datetime.now(self.ist)
+            start_date = end_date - timedelta(days=lookback_days)
+            df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            
+            if df.empty or len(df) < 30:
+                return analysis
+            
+            # Initialize optimizers
+            from utils.technical_calculations import ParameterOptimizer, MarketRegimeDetector
+            
+            optimizer = ParameterOptimizer()
+            regime_detector = MarketRegimeDetector()
+            
+            # Optimize parameters
+            optimal_params = optimizer.optimize_parameters(df)
+            
+            # Detect market regime
+            regime_data = regime_detector.detect_market_regime(df)
+            
+            # Adjust parameters for regime
+            adjusted_params = regime_detector.adjust_parameters_for_regime(optimal_params, regime_data)
+            
+            # Enhance analysis with optimization data
+            analysis['optimization'] = {
+                'optimal_parameters': optimal_params,
+                'market_regime': regime_data,
+                'adjusted_parameters': adjusted_params
+            }
+            
+            # Adjust technical score based on regime
+            if 'technical_score' in analysis:
+                regime_multiplier = adjusted_params.get('position_size_multiplier', 1.0)
+                analysis['technical_score'] = min(analysis['technical_score'] * regime_multiplier, 0.95)
+            
+            return analysis
+            
+        except Exception as e:
+            self.logger.error(f"Optimization analysis failed for {symbol}: {e}")
+            return analysis
+
+    def get_market_regime_summary(self, symbols: List[str]) -> Dict:
+        """Get market regime summary across multiple symbols"""
+        
+        try:
+            from utils.technical_calculations import MarketRegimeDetector
+            
+            regime_detector = MarketRegimeDetector()
+            regime_counts = {'bull': 0, 'bear': 0, 'sideways': 0}
+            total_symbols = 0
+            
+            for symbol in symbols[:10]:  # Limit for performance
+                try:
+                    end_date = datetime.now(self.ist)
+                    start_date = end_date - timedelta(days=30)
+                    df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+                    
+                    if not df.empty and len(df) >= 20:
+                        regime_data = regime_detector.detect_market_regime(df)
+                        regime = regime_data.get('regime', 'sideways')
+                        regime_counts[regime] += 1
+                        total_symbols += 1
+                except:
+                    continue
+            
+            if total_symbols == 0:
+                return {'error': 'No regime data available'}
+            
+            # Determine overall market regime
+            dominant_regime = max(regime_counts.items(), key=lambda x: x[1])
+            
+            return {
+                'total_symbols_analyzed': total_symbols,
+                'regime_distribution': regime_counts,
+                'dominant_regime': dominant_regime[0],
+                'regime_confidence': round(dominant_regime[1] / total_symbols, 2),
+                'market_assessment': self._get_market_assessment(dominant_regime[0], dominant_regime[1] / total_symbols)
+            }
+            
+        except Exception as e:
+            return {'error': f'Regime analysis failed: {e}'}
+
+    def _get_market_assessment(self, regime: str, confidence: float) -> str:
+        """Get readable market assessment"""
+        
+        if confidence < 0.5:
+            return "Mixed market conditions"
+        elif regime == 'bull' and confidence > 0.7:
+            return "Strong bullish market"
+        elif regime == 'bear' and confidence > 0.7:
+            return "Strong bearish market"
+        elif regime == 'sideways' and confidence > 0.6:
+            return "Consolidating market"
+        else:
+            return f"Moderately {regime} market"
+    
     def _validate_ohlcv_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Validate and clean OHLCV data with proper type conversion"""
         
