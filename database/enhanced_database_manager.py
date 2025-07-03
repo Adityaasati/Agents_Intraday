@@ -608,3 +608,369 @@ class EnhancedDatabaseManager:
         except Exception as e:
             self.logger.error(f"Failed to create sentiment tables: {e}")
             return False
+    
+    # Add these methods to existing database/enhanced_database_manager.py file
+    # REPLACE the database methods in database/enhanced_database_manager.py with these corrected versions
+    # These use the existing connection pool instead of connection_params
+
+    def store_portfolio_monitoring(self, monitoring_data: Dict) -> bool:
+        """Store portfolio risk monitoring results"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                
+                # Create monitoring table if not exists
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS agent_portfolio_monitoring (
+                        id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                        portfolio_health VARCHAR(20),
+                        total_risk_percent DECIMAL(5,2),
+                        concentration_risk DECIMAL(5,2),
+                        correlation_risk VARCHAR(20),
+                        alerts_count INTEGER,
+                        alerts TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Insert monitoring data
+                cursor.execute("""
+                    INSERT INTO agent_portfolio_monitoring 
+                    (timestamp, portfolio_health, total_risk_percent, concentration_risk, 
+                    correlation_risk, alerts_count, alerts)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    monitoring_data.get('timestamp'),
+                    monitoring_data.get('portfolio_health'),
+                    monitoring_data.get('total_risk_percent'),
+                    monitoring_data.get('concentration_risk'),
+                    monitoring_data.get('correlation_risk'),
+                    monitoring_data.get('alerts_count'),
+                    monitoring_data.get('alerts')
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            self.logger.error(f"Failed to store portfolio monitoring: {e}")
+            return False
+        finally:
+            self.return_connection(conn)
+
+    def store_correlation_data(self, symbol1: str, symbol2: str, correlation: float, 
+                            analysis_date: datetime = None) -> bool:
+        """Store symbol correlation data"""
+        
+        if analysis_date is None:
+            analysis_date = datetime.now()
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                
+                # Create correlation table if not exists
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS agent_correlation_data (
+                        id SERIAL PRIMARY KEY,
+                        symbol1 VARCHAR(20) NOT NULL,
+                        symbol2 VARCHAR(20) NOT NULL,
+                        correlation DECIMAL(6,4),
+                        analysis_date TIMESTAMP WITHOUT TIME ZONE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(symbol1, symbol2, analysis_date)
+                    )
+                """)
+                
+                # Insert correlation data
+                cursor.execute("""
+                    INSERT INTO agent_correlation_data 
+                    (symbol1, symbol2, correlation, analysis_date)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (symbol1, symbol2, analysis_date) 
+                    DO UPDATE SET correlation = %s
+                """, (symbol1, symbol2, correlation, analysis_date, correlation))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            self.logger.error(f"Failed to store correlation data: {e}")
+            return False
+        finally:
+            self.return_connection(conn)
+
+    def get_portfolio_monitoring_history(self, days_back: int = 7) -> List[Dict]:
+        """Get portfolio monitoring history"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                
+                cursor.execute("""
+                    SELECT * FROM agent_portfolio_monitoring 
+                    WHERE timestamp >= NOW() - INTERVAL '%s days'
+                    ORDER BY timestamp DESC
+                    LIMIT 50
+                """, (days_back,))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results] if results else []
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get monitoring history: {e}")
+            return []
+        finally:
+            self.return_connection(conn)
+
+    def get_correlation_matrix(self, symbols: List[str], days_back: int = 1) -> Dict:
+        """Get correlation matrix for symbols"""
+        
+        if len(symbols) < 2:
+            return {}
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                
+                placeholders = ','.join(['%s'] * len(symbols))
+                cursor.execute(f"""
+                    SELECT symbol1, symbol2, correlation 
+                    FROM agent_correlation_data 
+                    WHERE (symbol1 IN ({placeholders}) OR symbol2 IN ({placeholders}))
+                    AND analysis_date >= NOW() - INTERVAL '%s days'
+                    ORDER BY analysis_date DESC
+                """, symbols + symbols + [days_back])
+                
+                results = cursor.fetchall()
+                
+                # Build correlation matrix
+                correlation_matrix = {}
+                for row in results:
+                    pair = f"{row['symbol1']}-{row['symbol2']}"
+                    if pair not in correlation_matrix:  # Keep most recent
+                        correlation_matrix[pair] = float(row['correlation'])
+                
+                return correlation_matrix
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get correlation matrix: {e}")
+            return {}
+        finally:
+            self.return_connection(conn)
+
+    def get_portfolio_risk_summary(self) -> Dict:
+        """Get current portfolio risk summary"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                
+                # Get latest monitoring record
+                cursor.execute("""
+                    SELECT * FROM agent_portfolio_monitoring 
+                    ORDER BY timestamp DESC 
+                    LIMIT 1
+                """)
+                
+                latest = cursor.fetchone()
+                
+                if not latest:
+                    return {'status': 'no_data'}
+                
+                # Get active positions count
+                cursor.execute("""
+                    SELECT COUNT(*) as active_positions 
+                    FROM agent_live_signals 
+                    WHERE signal_status = 'ACTIVE'
+                """)
+                
+                positions_result = cursor.fetchone()
+                active_positions = positions_result['active_positions'] if positions_result else 0
+                
+                return {
+                    'timestamp': latest['timestamp'],
+                    'portfolio_health': latest['portfolio_health'],
+                    'total_risk_percent': float(latest['total_risk_percent']) if latest['total_risk_percent'] else 0,
+                    'concentration_risk': float(latest['concentration_risk']) if latest['concentration_risk'] else 0,
+                    'correlation_risk': latest['correlation_risk'],
+                    'active_positions': active_positions,
+                    'alerts_count': latest['alerts_count'],
+                    'status': 'current'
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get portfolio risk summary: {e}")
+            return {'status': 'error', 'error': str(e)}
+        finally:
+            self.return_connection(conn)
+
+    def clean_old_monitoring_data(self, days_to_keep: int = 30) -> bool:
+        """Clean old monitoring and correlation data"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                
+                # Clean old monitoring data
+                cursor.execute("""
+                    DELETE FROM agent_portfolio_monitoring 
+                    WHERE created_at < NOW() - INTERVAL '%s days'
+                """, (days_to_keep,))
+                
+                monitoring_deleted = cursor.rowcount
+                
+                # Clean old correlation data (if table exists)
+                try:
+                    cursor.execute("""
+                        DELETE FROM agent_correlation_data 
+                        WHERE created_at < NOW() - INTERVAL '%s days'
+                    """, (days_to_keep,))
+                    correlation_deleted = cursor.rowcount
+                except:
+                    correlation_deleted = 0
+                
+                conn.commit()
+                
+                self.logger.info(f"Cleaned {monitoring_deleted} monitoring records, {correlation_deleted} correlation records")
+                return True
+                
+        except Exception as e:
+            conn.rollback()
+            self.logger.error(f"Failed to clean old monitoring data: {e}")
+            return False
+        finally:
+            self.return_connection(conn)
+
+    def update_position_risk_metrics(self, signal_id: int, risk_metrics: Dict) -> bool:
+        """Update risk metrics for existing position"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                
+                # Check if columns exist, add them if needed
+                try:
+                    cursor.execute("""
+                        ALTER TABLE agent_live_signals 
+                        ADD COLUMN IF NOT EXISTS correlation_risk VARCHAR(20),
+                        ADD COLUMN IF NOT EXISTS portfolio_beta DECIMAL(4,2),
+                        ADD COLUMN IF NOT EXISTS risk_updated_at TIMESTAMP
+                    """)
+                except:
+                    pass  # Columns might already exist
+                
+                cursor.execute("""
+                    UPDATE agent_live_signals 
+                    SET correlation_risk = %s,
+                        portfolio_beta = %s,
+                        risk_updated_at = %s
+                    WHERE id = %s
+                """, (
+                    risk_metrics.get('correlation_risk'),
+                    risk_metrics.get('portfolio_beta'),
+                    datetime.now(),
+                    signal_id
+                ))
+                
+                conn.commit()
+                return cursor.rowcount > 0
+                
+        except Exception as e:
+            conn.rollback()
+            self.logger.error(f"Failed to update position risk metrics: {e}")
+            return False
+        finally:
+            self.return_connection(conn)
+
+    def get_sector_allocation_summary(self) -> Dict:
+        """Get current sector allocation summary"""
+        
+        conn = self.get_connection()
+        try:
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor:
+                
+                # Check if we have any active signals first
+                cursor.execute("""
+                    SELECT COUNT(*) as signal_count FROM agent_live_signals 
+                    WHERE signal_status = 'ACTIVE'
+                """)
+                
+                count_result = cursor.fetchone()
+                if not count_result or count_result['signal_count'] == 0:
+                    return {
+                        'sectors': {},
+                        'total_allocation': 0,
+                        'sector_count': 0,
+                        'max_sector_percent': 0
+                    }
+                
+                # Try to get sector allocation with JOIN
+                try:
+                    cursor.execute("""
+                        SELECT 
+                            COALESCE(sct.sector, 'Unknown') as sector,
+                            COUNT(als.id) as position_count,
+                            SUM(COALESCE(als.recommended_position_size, 0)) as total_allocation,
+                            AVG(COALESCE(als.overall_confidence, 0)) as avg_confidence
+                        FROM agent_live_signals als
+                        LEFT JOIN stocks_categories_table sct ON als.symbol = sct.symbol
+                        WHERE als.signal_status = 'ACTIVE'
+                        GROUP BY COALESCE(sct.sector, 'Unknown')
+                        ORDER BY total_allocation DESC
+                    """)
+                    
+                    results = cursor.fetchall()
+                    
+                except Exception as join_error:
+                    # Fallback: just get signals without sector info
+                    self.logger.warning(f"Sector JOIN failed, using fallback: {join_error}")
+                    cursor.execute("""
+                        SELECT 
+                            'Unknown' as sector,
+                            COUNT(id) as position_count,
+                            SUM(COALESCE(recommended_position_size, 0)) as total_allocation,
+                            AVG(COALESCE(overall_confidence, 0)) as avg_confidence
+                        FROM agent_live_signals
+                        WHERE signal_status = 'ACTIVE'
+                    """)
+                    
+                    results = cursor.fetchall()
+                
+                sector_summary = {}
+                total_allocation = 0
+                
+                for row in results:
+                    allocation = float(row['total_allocation']) if row['total_allocation'] else 0
+                    total_allocation += allocation
+                    
+                    sector_summary[row['sector']] = {
+                        'position_count': row['position_count'],
+                        'total_allocation': allocation,
+                        'avg_confidence': float(row['avg_confidence']) if row['avg_confidence'] else 0
+                    }
+                
+                # Calculate percentages
+                for sector_data in sector_summary.values():
+                    sector_data['allocation_percent'] = round(
+                        (sector_data['total_allocation'] / total_allocation * 100), 2
+                    ) if total_allocation > 0 else 0
+                
+                return {
+                    'sectors': sector_summary,
+                    'total_allocation': round(total_allocation, 2),
+                    'sector_count': len(sector_summary),
+                    'max_sector_percent': max(
+                        (data['allocation_percent'] for data in sector_summary.values()), default=0
+                    )
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Failed to get sector allocation summary: {e}")
+            return {'sectors': {}, 'total_allocation': 0, 'sector_count': 0, 'max_sector_percent': 0}
+        finally:
+            self.return_connection(conn)

@@ -178,6 +178,190 @@ LOG_LEVELS = {
     'system': 'INFO'
 }
 
+# Add these configuration parameters to existing config.py file
+# Insert at the end of the file with the portfolio risk management settings
+
+# =============================================================================
+# PORTFOLIO RISK MANAGEMENT SETTINGS
+# =============================================================================
+
+# Portfolio Concentration Limits
+MAX_SECTOR_ALLOCATION = 30.0  # Maximum 30% allocation per sector
+MAX_POSITION_SIZE_PERCENT = 15.0  # Maximum 15% per individual position
+MIN_DIVERSIFICATION_SECTORS = 3  # Minimum number of sectors
+
+# Correlation Risk Management
+MAX_CORRELATION_THRESHOLD = 0.7  # Maximum correlation between positions
+CORRELATION_ANALYSIS_DAYS = 30  # Days of data for correlation calculation
+HIGH_CORRELATION_PENALTY = 0.4  # Position size reduction for high correlation
+
+# Portfolio Risk Limits
+MAX_PORTFOLIO_RISK_PERCENT = 20.0  # Maximum total portfolio risk
+RISK_BUDGET_WARNING_THRESHOLD = 90.0  # Warning when 90% of risk budget used
+PORTFOLIO_BETA_TARGET = 1.0  # Target portfolio beta
+
+# Cash Management
+MIN_CASH_BUFFER_PERCENT = 10.0  # Minimum cash buffer (10% of capital)
+OPTIMAL_CASH_BUFFER_PERCENT = 15.0  # Optimal cash buffer (15% of capital)
+MAX_CASH_THRESHOLD_PERCENT = 30.0  # Alert if cash exceeds 30%
+
+# Market Regime Adjustments
+REGIME_POSITION_MULTIPLIERS = {
+    'bull': 1.2,      # Increase position size in bull market
+    'bear': 0.7,      # Reduce position size in bear market
+    'sideways': 1.0   # Normal position size in sideways market
+}
+
+REGIME_CONFIDENCE_THRESHOLD = 0.7  # Minimum confidence to apply regime adjustments
+
+# Risk Monitoring Settings
+RISK_MONITORING_FREQUENCY_HOURS = 4  # Monitor portfolio risk every 4 hours
+MONITORING_HISTORY_DAYS = 30  # Keep 30 days of monitoring history
+CRITICAL_RISK_ALERT_THRESHOLD = 3  # Number of alerts to trigger critical status
+
+# Diversification Scoring
+DIVERSIFICATION_SECTOR_POINTS = 15  # Points per sector (max 60 points)
+DIVERSIFICATION_CONCENTRATION_POINTS = 40  # Points for low concentration (max 40 points)
+EXCELLENT_DIVERSIFICATION_THRESHOLD = 80  # Score for excellent diversification
+GOOD_DIVERSIFICATION_THRESHOLD = 60  # Score for good diversification
+
+# Enhanced Position Sizing Parameters
+VOLATILITY_POSITION_MULTIPLIERS = {
+    'Low': 1.2,     # Increase size for low volatility stocks
+    'Medium': 1.0,  # Normal size for medium volatility
+    'High': 0.8     # Reduce size for high volatility stocks
+}
+
+MARKET_CAP_POSITION_MULTIPLIERS = {
+    'Large_Cap': 1.1,   # Slightly larger positions in large caps
+    'Mid_Cap': 1.0,     # Normal positions in mid caps
+    'Small_Cap': 0.9    # Smaller positions in small caps
+}
+
+CATEGORY_POSITION_MULTIPLIERS = {
+    'A': 1.2,  # Larger positions in category A stocks
+    'B': 1.0,  # Normal positions in category B stocks
+    'C': 0.8   # Smaller positions in category C stocks
+}
+
+# Correlation-Based Adjustments
+SECTOR_CONCENTRATION_MULTIPLIERS = {
+    'overweight': 0.5,  # Significantly reduce if sector overweight (>25%)
+    'normal': 0.8,      # Moderate reduction if sector normal (15-25%)
+    'underweight': 1.0  # No reduction if sector underweight (<15%)
+}
+
+# Risk Alert Definitions
+RISK_ALERT_THRESHOLDS = {
+    'HIGH_PORTFOLIO_RISK': 20.0,        # Total portfolio risk > 20%
+    'HIGH_SECTOR_CONCENTRATION': 30.0,   # Single sector > 30%
+    'HIGH_CORRELATION_RISK': 0.8,        # Max correlation > 0.8
+    'RISK_BUDGET_EXHAUSTED': 95.0,       # Risk budget > 95% used
+    'POSITION_LIMIT_EXCEEDED': None      # Based on MAX_POSITIONS_LIVE
+}
+
+# Performance Thresholds for Enhanced Features
+ENHANCED_FEATURES_CONFIG = {
+    'correlation_calculation_timeout': 10,    # Max seconds for correlation calc
+    'risk_monitoring_batch_size': 50,         # Max positions to analyze at once
+    'optimization_max_iterations': 100,       # Max optimization iterations
+    'fallback_to_basic_on_error': True       # Fallback to basic methods on error
+}
+
+# =============================================================================
+# VALIDATION FUNCTIONS FOR PORTFOLIO RISK SETTINGS
+# =============================================================================
+
+def validate_portfolio_risk_config() -> bool:
+    """Validate portfolio risk configuration parameters"""
+    
+    try:
+        # Check percentage values are within valid ranges
+        percentage_configs = [
+            ('MAX_SECTOR_ALLOCATION', MAX_SECTOR_ALLOCATION, 1, 100),
+            ('MAX_POSITION_SIZE_PERCENT', MAX_POSITION_SIZE_PERCENT, 1, 50),
+            ('MAX_PORTFOLIO_RISK_PERCENT', MAX_PORTFOLIO_RISK_PERCENT, 5, 50),
+            ('MIN_CASH_BUFFER_PERCENT', MIN_CASH_BUFFER_PERCENT, 5, 30),
+            ('OPTIMAL_CASH_BUFFER_PERCENT', OPTIMAL_CASH_BUFFER_PERCENT, 10, 40)
+        ]
+        
+        for name, value, min_val, max_val in percentage_configs:
+            if not (min_val <= value <= max_val):
+                print(f"Invalid {name}: {value}% (should be {min_val}-{max_val}%)")
+                return False
+        
+        # Check correlation threshold
+        if not (0.1 <= MAX_CORRELATION_THRESHOLD <= 1.0):
+            print(f"Invalid MAX_CORRELATION_THRESHOLD: {MAX_CORRELATION_THRESHOLD}")
+            return False
+        
+        # Check regime multipliers
+        for regime, multiplier in REGIME_POSITION_MULTIPLIERS.items():
+            if not (0.1 <= multiplier <= 2.0):
+                print(f"Invalid regime multiplier for {regime}: {multiplier}")
+                return False
+        
+        # Check consistency
+        if MIN_CASH_BUFFER_PERCENT >= OPTIMAL_CASH_BUFFER_PERCENT:
+            print("MIN_CASH_BUFFER should be less than OPTIMAL_CASH_BUFFER")
+            return False
+        
+        if MAX_POSITION_SIZE_PERCENT * MIN_DIVERSIFICATION_SECTORS > 80:
+            print("Position size and diversification settings may be incompatible")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"Portfolio risk config validation failed: {e}")
+        return False
+
+def get_portfolio_risk_summary() -> dict:
+    """Get summary of portfolio risk configuration"""
+    
+    return {
+        'concentration_limits': {
+            'max_sector_percent': MAX_SECTOR_ALLOCATION,
+            'max_position_percent': MAX_POSITION_SIZE_PERCENT,
+            'min_sectors': MIN_DIVERSIFICATION_SECTORS
+        },
+        'risk_limits': {
+            'max_portfolio_risk': MAX_PORTFOLIO_RISK_PERCENT,
+            'max_correlation': MAX_CORRELATION_THRESHOLD,
+            'target_beta': PORTFOLIO_BETA_TARGET
+        },
+        'cash_management': {
+            'min_buffer': MIN_CASH_BUFFER_PERCENT,
+            'optimal_buffer': OPTIMAL_CASH_BUFFER_PERCENT,
+            'max_threshold': MAX_CASH_THRESHOLD_PERCENT
+        },
+        'monitoring': {
+            'frequency_hours': RISK_MONITORING_FREQUENCY_HOURS,
+            'history_days': MONITORING_HISTORY_DAYS,
+            'critical_threshold': CRITICAL_RISK_ALERT_THRESHOLD
+        }
+    }
+
+# =============================================================================
+# ENHANCED VALIDATION FUNCTION UPDATE
+# =============================================================================
+
+def validate_enhanced_config() -> bool:
+    """Enhanced validation including portfolio risk settings"""
+    
+    # Run existing validation
+    if not validate_config():
+        return False
+    
+    # Run portfolio risk validation
+    if not validate_portfolio_risk_config():
+        return False
+    
+    print("Enhanced configuration validation: PASSED")
+    return True
+
+
+
 # ==========================================
 # UTILITY FUNCTIONS
 # ==========================================
@@ -259,3 +443,189 @@ def validate_config():
     except AssertionError as e:
         print(f"✗ Configuration validation error: {e}")
         return False
+    
+# STOP LOSS OPTIMIZATION SETTINGS
+# =============================================================================
+
+# Trailing Stop Loss Configuration
+TRAILING_STOP_INITIAL_PERCENT = float(os.getenv('TRAILING_STOP_INITIAL', '15.0'))  # Initial trailing stop
+TRAILING_STOP_MIN_PERCENT = float(os.getenv('TRAILING_STOP_MIN', '8.0'))          # Minimum trailing stop
+TRAILING_STOP_TIGHTENING_THRESHOLD = float(os.getenv('TRAILING_TIGHTEN_THRESHOLD', '10.0'))  # Profit % to start tightening
+
+# Volatility-Based Stop Loss
+ATR_STOP_MULTIPLIER = float(os.getenv('ATR_STOP_MULTIPLIER', '2.0'))              # ATR multiplier for stops
+ATR_CALCULATION_PERIODS = int(os.getenv('ATR_PERIODS', '14'))                     # Periods for ATR calculation
+VOLATILITY_STOP_MAX_PERCENT = float(os.getenv('VOLATILITY_STOP_MAX', '20.0'))     # Max volatility stop
+
+# Technical Level Stops
+SUPPORT_RESISTANCE_BUFFER = float(os.getenv('SUPPORT_BUFFER_PERCENT', '2.0'))     # Buffer below support
+TECHNICAL_STOP_LOOKBACK_DAYS = int(os.getenv('TECHNICAL_LOOKBACK_DAYS', '20'))    # Days to look for levels
+
+# Time-Based Stops
+TIME_STOP_DAYS = int(os.getenv('TIME_STOP_DAYS', '10'))                           # Days before time stop
+TIME_STOP_ENABLED = os.getenv('TIME_STOP_ENABLED', 'true').lower() == 'true'     # Enable time stops
+
+# Profit Protection Settings
+BREAKEVEN_PROFIT_THRESHOLD = float(os.getenv('BREAKEVEN_THRESHOLD', '10.0'))      # Move to breakeven at +10%
+PROFIT_PROTECTION_LEVELS = {
+    10.0: 0.0,    # At +10% profit, move stop to breakeven
+    20.0: 5.0,    # At +20% profit, move stop to +5%
+    30.0: 15.0    # At +30% profit, move stop to +15%
+}
+
+# Stop Loss Strategy Priority (1 = highest)
+STOP_LOSS_STRATEGY_PRIORITY = {
+    'trailing': 1,
+    'volatility': 2,
+    'technical': 3,
+    'time': 4
+}
+
+# =============================================================================
+# RISK PARITY SETTINGS
+# =============================================================================
+
+# Risk Parity Target
+TARGET_RISK_CONTRIBUTION_PERCENT = float(os.getenv('TARGET_RISK_CONTRIBUTION', '20.0'))  # Equal risk per position
+RISK_PARITY_TOLERANCE = float(os.getenv('RISK_PARITY_TOLERANCE', '5.0'))                 # Tolerance for rebalancing
+RISK_PARITY_REBALANCE_THRESHOLD = float(os.getenv('REBALANCE_THRESHOLD', '25.0'))        # Trigger rebalancing
+
+# Portfolio Optimization Settings
+EFFICIENT_FRONTIER_POINTS = int(os.getenv('EFFICIENT_FRONTIER_POINTS', '20'))            # Points on efficient frontier
+OPTIMIZATION_LOOKBACK_MONTHS = int(os.getenv('OPTIMIZATION_LOOKBACK_MONTHS', '6'))       # Months of data for optimization
+MIN_PORTFOLIO_POSITIONS = int(os.getenv('MIN_PORTFOLIO_POSITIONS', '3'))                 # Minimum positions for optimization
+
+# Modern Portfolio Theory Parameters
+RISK_FREE_RATE = float(os.getenv('RISK_FREE_RATE', '6.5'))                              # Risk-free rate (%)
+TARGET_RETURN_RANGE = (8.0, 25.0)                                                       # Target return range (%)
+MAX_SINGLE_ASSET_WEIGHT = float(os.getenv('MAX_SINGLE_ASSET_WEIGHT', '25.0'))           # Max weight per asset (%)
+
+# Rebalancing Settings
+REBALANCING_FREQUENCY_DAYS = int(os.getenv('REBALANCING_FREQUENCY', '7'))                # Weekly rebalancing
+REBALANCING_THRESHOLD_PERCENT = float(os.getenv('REBALANCING_THRESHOLD', '15.0'))        # Rebalance if position deviates >15%
+AUTO_REBALANCING_ENABLED = os.getenv('AUTO_REBALANCING', 'false').lower() == 'true'     # Auto rebalancing
+
+# =============================================================================
+# ADVANCED PORTFOLIO METRICS
+# =============================================================================
+
+# Performance Attribution
+ATTRIBUTION_PERIODS = ['1D', '1W', '1M', '3M']                                          # Attribution time periods
+BENCHMARK_SYMBOL = os.getenv('BENCHMARK_SYMBOL', 'NIFTY50')                             # Benchmark for comparison
+
+# Risk Metrics Calculation
+VAR_CONFIDENCE_LEVEL = float(os.getenv('VAR_CONFIDENCE', '95.0'))                        # VaR confidence level
+EXPECTED_SHORTFALL_LEVEL = float(os.getenv('ES_LEVEL', '95.0'))                          # Expected shortfall level
+DRAWDOWN_CALCULATION_PERIOD = int(os.getenv('DRAWDOWN_PERIOD', '252'))                   # Trading days for drawdown
+
+# =============================================================================
+# VALIDATION FUNCTIONS
+# =============================================================================
+
+def validate_stop_loss_config() -> bool:
+    """Validate stop loss configuration parameters"""
+    
+    try:
+        # Validate percentage ranges
+        if not (5.0 <= TRAILING_STOP_INITIAL_PERCENT <= 25.0):
+            return False
+        if not (3.0 <= TRAILING_STOP_MIN_PERCENT <= 15.0):
+            return False
+        if not (1.0 <= ATR_STOP_MULTIPLIER <= 5.0):
+            return False
+        if not (5 <= ATR_CALCULATION_PERIODS <= 30):
+            return False
+        if not (5 <= TIME_STOP_DAYS <= 30):
+            return False
+        
+        # Validate profit protection levels
+        for profit_level, stop_level in PROFIT_PROTECTION_LEVELS.items():
+            if stop_level >= profit_level:
+                return False
+        
+        return True
+        
+    except Exception:
+        return False
+
+def validate_risk_parity_config() -> bool:
+    """Validate risk parity configuration parameters"""
+    
+    try:
+        # Validate risk parity settings
+        if not (10.0 <= TARGET_RISK_CONTRIBUTION_PERCENT <= 50.0):
+            return False
+        if not (1.0 <= RISK_PARITY_TOLERANCE <= 10.0):
+            return False
+        if not (10 <= EFFICIENT_FRONTIER_POINTS <= 50):
+            return False
+        if not (1 <= OPTIMIZATION_LOOKBACK_MONTHS <= 24):
+            return False
+        if not (2 <= MIN_PORTFOLIO_POSITIONS <= 10):
+            return False
+        if not (10.0 <= MAX_SINGLE_ASSET_WEIGHT <= 50.0):
+            return False
+        
+        # Validate return range
+        min_return, max_return = TARGET_RETURN_RANGE
+        if not (min_return < max_return and 0 <= min_return <= 50 and min_return <= max_return <= 100):
+            return False
+        
+        return True
+        
+    except Exception:
+        return False
+
+def validate_advanced_config() -> bool:
+    """Complete validation including stop loss and risk parity"""
+    
+    validations = [
+        validate_config(),
+        validate_portfolio_risk_config() if 'validate_portfolio_risk_config' in globals() else True,
+        validate_stop_loss_config(),
+        validate_risk_parity_config()
+    ]
+    
+    return all(validations)
+
+def get_stop_loss_summary() -> dict:
+    """Get stop loss configuration summary"""
+    
+    return {
+        'trailing_stops': {
+            'initial_percent': TRAILING_STOP_INITIAL_PERCENT,
+            'minimum_percent': TRAILING_STOP_MIN_PERCENT,
+            'tightening_threshold': TRAILING_STOP_TIGHTENING_THRESHOLD
+        },
+        'volatility_stops': {
+            'atr_multiplier': ATR_STOP_MULTIPLIER,
+            'atr_periods': ATR_CALCULATION_PERIODS,
+            'max_percent': VOLATILITY_STOP_MAX_PERCENT
+        },
+        'time_stops': {
+            'enabled': TIME_STOP_ENABLED,
+            'days': TIME_STOP_DAYS
+        },
+        'profit_protection': PROFIT_PROTECTION_LEVELS
+    }
+
+def get_risk_parity_summary() -> dict:
+    """Get risk parity configuration summary"""
+    
+    return {
+        'target_risk_contribution': TARGET_RISK_CONTRIBUTION_PERCENT,
+        'rebalancing': {
+            'frequency_days': REBALANCING_FREQUENCY_DAYS,
+            'threshold_percent': REBALANCING_THRESHOLD_PERCENT,
+            'auto_enabled': AUTO_REBALANCING_ENABLED
+        },
+        'optimization': {
+            'lookback_months': OPTIMIZATION_LOOKBACK_MONTHS,
+            'efficient_frontier_points': EFFICIENT_FRONTIER_POINTS,
+            'max_single_weight': MAX_SINGLE_ASSET_WEIGHT
+        },
+        'risk_metrics': {
+            'var_confidence': VAR_CONFIDENCE_LEVEL,
+            'risk_free_rate': RISK_FREE_RATE
+        }
+    }
