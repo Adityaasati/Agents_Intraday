@@ -139,7 +139,64 @@ LIVE_TRADING_APPROVED_SYMBOLS = [
 # ==========================================
 # SIGNAL GENERATION PARAMETERS
 # ==========================================
+# ==========================================
+# ADD THESE LINES TO END OF config.py
+# ==========================================
 
+# Performance Optimization Settings (Day 7A)
+DB_CONNECTION_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '10'))
+DB_CONNECTION_POOL_MAX = int(os.getenv('DB_POOL_MAX', '20'))
+DB_CONNECTION_TIMEOUT = int(os.getenv('DB_TIMEOUT', '30'))
+DB_QUERY_TIMEOUT = int(os.getenv('DB_QUERY_TIMEOUT', '60'))
+
+MAX_CONCURRENT_SYMBOLS = int(os.getenv('MAX_CONCURRENT_SYMBOLS', '10'))
+BATCH_SIZE_SYMBOLS = int(os.getenv('BATCH_SIZE', '25'))
+MAX_PARALLEL_WORKERS = int(os.getenv('MAX_WORKERS', '4'))
+PROCESSING_TIMEOUT_MINUTES = int(os.getenv('PROCESSING_TIMEOUT', '15'))
+
+MAX_MEMORY_USAGE_MB = int(os.getenv('MAX_MEMORY_MB', '1024'))
+CACHE_SIZE_INDICATORS = int(os.getenv('CACHE_SIZE', '1000'))
+CLEANUP_INTERVAL_MINUTES = int(os.getenv('CLEANUP_INTERVAL', '30'))
+
+TARGET_SYMBOLS_PER_MINUTE = int(os.getenv('TARGET_SPEED', '25'))
+MAX_PROCESSING_TIME_PER_SYMBOL = float(os.getenv('MAX_TIME_PER_SYMBOL', '2.0'))
+PERFORMANCE_ALERT_THRESHOLD = float(os.getenv('PERF_ALERT_THRESHOLD', '1.5'))
+
+ENABLE_INDICATOR_CACHE = os.getenv('ENABLE_CACHE', 'true').lower() == 'true'
+CACHE_EXPIRY_MINUTES = int(os.getenv('CACHE_EXPIRY', '15'))
+ENABLE_QUERY_CACHE = os.getenv('ENABLE_QUERY_CACHE', 'true').lower() == 'true'
+
+ENABLE_PERFORMANCE_MONITORING = os.getenv('ENABLE_MONITORING', 'true').lower() == 'true'
+MONITOR_INTERVAL_SECONDS = int(os.getenv('MONITOR_INTERVAL', '30'))
+LOG_PERFORMANCE_DETAILS = os.getenv('LOG_PERFORMANCE', 'false').lower() == 'true'
+
+ENABLE_QUERY_OPTIMIZATION = os.getenv('ENABLE_QUERY_OPT', 'true').lower() == 'true'
+USE_PREPARED_STATEMENTS = os.getenv('USE_PREPARED_STMT', 'true').lower() == 'true'
+ENABLE_BULK_OPERATIONS = os.getenv('ENABLE_BULK_OPS', 'true').lower() == 'true'
+
+# Performance Helper Functions
+def get_optimal_batch_size(total_symbols: int) -> int:
+    """Calculate optimal batch size based on total symbols"""
+    if total_symbols <= 50:
+        return min(BATCH_SIZE_SYMBOLS, total_symbols)
+    elif total_symbols <= 200:
+        return min(50, total_symbols // 4)
+    else:
+        return min(100, total_symbols // 8)
+
+def get_worker_count(batch_size: int) -> int:
+    """Calculate optimal worker count for batch size"""
+    return min(MAX_PARALLEL_WORKERS, max(1, batch_size // 10))
+
+def validate_performance_config() -> dict:
+    """Validate performance configuration"""
+    return {
+        'pool_size': DB_CONNECTION_POOL_SIZE,
+        'batch_size': BATCH_SIZE_SYMBOLS,
+        'workers': MAX_PARALLEL_WORKERS,
+        'cache_enabled': ENABLE_INDICATOR_CACHE,
+        'monitoring_enabled': ENABLE_PERFORMANCE_MONITORING
+    }
 # Confidence Thresholds
 MIN_CONFIDENCE_THRESHOLD = 0.60    # Minimum 60% confidence for signal generation
 HIGH_CONFIDENCE_THRESHOLD = 0.70   # High confidence threshold
@@ -764,3 +821,67 @@ PAPER_POSITION_SIZE_LIMIT = 0.15  # 15% max per position
 GENERATE_DAILY_REPORTS = True
 SAVE_TRADE_HISTORY = True
 TRADE_HISTORY_RETENTION_DAYS = 90
+
+
+# ==========================================
+# ADD THESE LINES TO END OF config.py (Day 7B)
+# ==========================================
+
+# Dashboard Configuration
+ENABLE_DASHBOARD = os.getenv('ENABLE_DASHBOARD', 'true').lower() == 'true'
+DASHBOARD_HOST = os.getenv('DASHBOARD_HOST', '0.0.0.0')
+DASHBOARD_PORT = int(os.getenv('DASHBOARD_PORT', '8080'))
+DASHBOARD_AUTO_REFRESH = int(os.getenv('DASHBOARD_REFRESH', '30'))
+DASHBOARD_THEME = os.getenv('DASHBOARD_THEME', 'dark')
+
+# System Monitoring
+ENABLE_SYSTEM_ALERTS = os.getenv('ENABLE_ALERTS', 'true').lower() == 'true'
+ALERT_EMAIL = os.getenv('ALERT_EMAIL', '')
+ALERT_WEBHOOK = os.getenv('ALERT_WEBHOOK', '')
+SYSTEM_HEALTH_CHECK_INTERVAL = int(os.getenv('HEALTH_CHECK_INTERVAL', '300'))
+
+# Automated Reporting
+ENABLE_AUTO_REPORTS = os.getenv('ENABLE_AUTO_REPORTS', 'true').lower() == 'true'
+DAILY_REPORT_TIME = os.getenv('DAILY_REPORT_TIME', '18:00')
+WEEKLY_REPORT_DAY = os.getenv('WEEKLY_REPORT_DAY', 'Sunday')
+REPORT_EMAIL_LIST = os.getenv('REPORT_EMAIL_LIST', '').split(',') if os.getenv('REPORT_EMAIL_LIST') else []
+
+# Production Deployment
+PRODUCTION_MODE = os.getenv('PRODUCTION_MODE', 'false').lower() == 'true'
+MAX_CONCURRENT_USERS = int(os.getenv('MAX_CONCURRENT_USERS', '10'))
+SESSION_TIMEOUT_MINUTES = int(os.getenv('SESSION_TIMEOUT', '60'))
+BACKUP_INTERVAL_HOURS = int(os.getenv('BACKUP_INTERVAL', '24'))
+
+# Security Settings
+API_KEY_REQUIRED = os.getenv('API_KEY_REQUIRED', 'false').lower() == 'true'
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+RATE_LIMIT_REQUESTS = int(os.getenv('RATE_LIMIT', '100'))
+RATE_LIMIT_WINDOW = int(os.getenv('RATE_LIMIT_WINDOW', '3600'))
+
+# System Maintenance
+AUTO_CLEANUP_ENABLED = os.getenv('AUTO_CLEANUP', 'true').lower() == 'true'
+LOG_RETENTION_DAYS = int(os.getenv('LOG_RETENTION_DAYS', '30'))
+DATA_RETENTION_DAYS = int(os.getenv('DATA_RETENTION_DAYS', '90'))
+MAINTENANCE_WINDOW_START = os.getenv('MAINTENANCE_START', '02:00')
+MAINTENANCE_WINDOW_END = os.getenv('MAINTENANCE_END', '04:00')
+
+def get_dashboard_config() -> dict:
+    """Get dashboard configuration"""
+    return {
+        'enabled': ENABLE_DASHBOARD,
+        'host': DASHBOARD_HOST,
+        'port': DASHBOARD_PORT,
+        'refresh': DASHBOARD_AUTO_REFRESH,
+        'theme': DASHBOARD_THEME,
+        'production': PRODUCTION_MODE
+    }
+
+def get_monitoring_config() -> dict:
+    """Get monitoring configuration"""
+    return {
+        'alerts_enabled': ENABLE_SYSTEM_ALERTS,
+        'health_check_interval': SYSTEM_HEALTH_CHECK_INTERVAL,
+        'auto_reports': ENABLE_AUTO_REPORTS,
+        'report_time': DAILY_REPORT_TIME,
+        'auto_cleanup': AUTO_CLEANUP_ENABLED
+    }

@@ -9,7 +9,11 @@ from datetime import datetime, timedelta
 import pytz
 from typing import List, Dict, Optional, Tuple, Any
 from pathlib import Path
-
+from psycopg2 import pool
+import threading
+import time
+import config
+import json
 
 class EnhancedDatabaseManager:
     """Simplified Database Manager for Day 1 - Nexus Trading System"""
@@ -19,6 +23,25 @@ class EnhancedDatabaseManager:
         self.ist = pytz.timezone('Asia/Kolkata')
         self.connection_pool = None
         self._initialize_connection_pool()
+        self._connection_pool = None
+        self._query_cache = {} if hasattr(config, 'ENABLE_QUERY_CACHE') and config.ENABLE_QUERY_CACHE else None
+        self._indicator_cache = {} if hasattr(config, 'ENABLE_INDICATOR_CACHE') and config.ENABLE_INDICATOR_CACHE else None
+        self._cache_lock = threading.Lock()
+        self._performance_stats = {
+            'queries_executed': 0,
+            'cache_hits': 0,
+            'avg_query_time': 0.0,
+            'last_cleanup': datetime.now()
+        }
+        self._init_connection_pool()
+        self._create_performance_indexes()
+        try:
+            if hasattr(config, 'DB_CONNECTION_POOL_MAX'):
+                self._init_connection_pool()
+            if hasattr(config, 'ENABLE_QUERY_OPTIMIZATION'):
+                self._create_performance_indexes()
+        except Exception as e:
+            self.logger.warning(f"Performance features initialization failed: {e}")
         
     def _initialize_connection_pool(self):
         """Initialize PostgreSQL connection pool"""
@@ -35,6 +58,18 @@ class EnhancedDatabaseManager:
         except Exception as e:
             self.logger.error(f"Failed to initialize connection pool: {e}")
             raise
+    
+    def _get_current_quarter_table(self) -> str:
+        """Get current quarter table name"""
+        try:
+            import config
+            return f"{config.HISTORICAL_DATA_PREFIX}{config.get_current_quarter()}"
+        except:
+            # Fallback to manual calculation
+            from datetime import datetime
+            now = datetime.now()
+            quarter = ((now.month - 1) // 3) + 1
+            return f"historical_data_3m_{now.year}_q{quarter}"
     
     def get_connection(self):
         """Get connection from pool"""
@@ -97,36 +132,35 @@ class EnhancedDatabaseManager:
         params.append(limit)
         return self.execute_query(query, tuple(params))
     
-    def get_testing_symbols(self) -> List[str]:
-        """Get predefined testing symbols that exist in your table"""
-        testing_symbols = [
-            'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ICICIBANK', 
-            'HDFCBANK', 'HINDUNILVR', 'ITC', 'BAJFINANCE', 'MARUTI'
-        ]
-        
-        # Verify these symbols exist in your table
-        placeholders = ','.join(['%s'] * len(testing_symbols))
-        query = f"""
-        SELECT symbol FROM stocks_categories_table 
-        WHERE symbol IN ({placeholders})
-        ORDER BY market_cap DESC NULLS LAST
-        """
-        
-        result = self.execute_query(query, tuple(testing_symbols))
-        found_symbols = [row['symbol'] for row in result]
-        
-        # If no predefined symbols found, get any 5 symbols
-        if not found_symbols:
+    def get_testing_symbols(self, limit: int = 50) -> List[str]:
+        """Get testing symbols with optional limit"""
+        try:
+            conn = self.get_connection()
+            
             query = """
             SELECT symbol FROM stocks_categories_table 
-            WHERE symbol IS NOT NULL 
-            ORDER BY market_cap DESC NULLS LAST
-            LIMIT 5
+            WHERE category IN ('A', 'B') 
+            AND market_cap_type IN ('Large_Cap', 'Mid_Cap')
+            ORDER BY market_cap DESC 
+            LIMIT %s
             """
-            result = self.execute_query(query)
-            found_symbols = [row['symbol'] for row in result]
-        
-        return found_symbols
+            
+            with conn.cursor() as cursor:
+                cursor.execute(query, (limit,))
+                symbols = [row[0] for row in cursor.fetchall()]
+                
+            # If no symbols found, return config defaults
+            if not symbols:
+                import config
+                return config.TESTING_SYMBOLS[:limit]
+            
+            return symbols
+            
+        except Exception as e:
+            self.logger.error(f"Testing symbols retrieval failed: {e}")
+            # Fallback to config symbols
+            import config
+            return config.TESTING_SYMBOLS[:limit]
     
     def get_fundamental_data(self, symbol: str) -> Dict:
         """Get complete fundamental data for a symbol"""
@@ -152,61 +186,69 @@ class EnhancedDatabaseManager:
     
     # Update the get_historical_data method to auto-create current quarter table
 
-    def get_historical_data(self, symbol: str, start_date: datetime = None, 
-                        end_date: datetime = None, limit: int = 1000) -> pd.DataFrame:
-        """Get historical OHLCV data from quarterly tables - with auto-create"""
-        
-        if not end_date:
-            end_date = datetime.now(self.ist)
-        if not start_date:
-            start_date = end_date - timedelta(days=30)
-        
-        # Get available quarters
-        quarters = self.get_available_quarters()
-        
-        # Auto-create current quarter table if it doesn't exist
-        current_quarter = f"historical_data_3m_{end_date.year}_q{((end_date.month - 1) // 3) + 1}"
-        if current_quarter not in quarters:
-            self.logger.info(f"Creating missing quarter table: {current_quarter}")
-            year = end_date.year
-            quarter = ((end_date.month - 1) // 3) + 1
-            if self.create_quarterly_table(year, quarter):
-                quarters.append(current_quarter)
-        
-        if not quarters:
-            self.logger.warning("No historical data tables found")
-            return pd.DataFrame()
-        
-        all_data = []
-        for quarter_table in quarters[:2]:  # Check only latest 2 quarters
+    def get_historical_data(self, symbol: str, limit: int = 100) -> pd.DataFrame:
+        """Get historical data for symbol with proper LIMIT clause"""
+        try:
+            quarter_table = self._get_current_quarter_table()
+            
+            query = f"""
+            SELECT date, open, high, low, close, volume
+            FROM {quarter_table}
+            WHERE symbol = %s
+            ORDER BY date DESC
+            LIMIT %s
+            """
+            
+            conn = self.get_connection()
+            df = pd.read_sql_query(query, conn, params=(symbol, limit))
+            
+            if not df.empty:
+                df['date'] = pd.to_datetime(df['date'])
+                df = df.sort_values('date')
+            
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"Could not query {quarter_table}: {e}")
+            # Try previous quarter
             try:
+                prev_quarter_table = self._get_previous_quarter_table()
                 query = f"""
-                SELECT symbol, date, open, high, low, close, volume
-                FROM {quarter_table}
-                WHERE symbol = %s 
-                AND date >= %s AND date <= %s
+                SELECT date, open, high, low, close, volume
+                FROM {prev_quarter_table}
+                WHERE symbol = %s
                 ORDER BY date DESC
                 LIMIT %s
                 """
-                
-                data = self.execute_query(query, (symbol, start_date, end_date, limit))
-                all_data.extend(data)
-                
-                if len(all_data) >= limit:
-                    break
-                    
-            except Exception as e:
-                self.logger.warning(f"Could not query {quarter_table}: {e}")
-                continue
-        
-        if not all_data:
-            return pd.DataFrame()
-        
-        df = pd.DataFrame(all_data)
-        df['date'] = pd.to_datetime(df['date'])
-        df = df.sort_values('date').reset_index(drop=True)
-        
-        return df
+                df = pd.read_sql_query(query, conn, params=(symbol, limit))
+                if not df.empty:
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.sort_values('date')
+                return df
+            except:
+                return pd.DataFrame()
+    
+    def _get_previous_quarter_table(self) -> str:
+        """Get previous quarter table name"""
+        try:
+            from datetime import datetime
+            now = datetime.now()
+            
+            # Calculate previous quarter
+            if now.month <= 3:
+                # Q1 -> previous year Q4
+                prev_year = now.year - 1
+                prev_quarter = 4
+            else:
+                # Q2,Q3,Q4 -> same year previous quarter
+                prev_year = now.year
+                prev_quarter = ((now.month - 1) // 3)
+            
+            return f"historical_data_3m_{prev_year}_q{prev_quarter}"
+            
+        except:
+            # Fallback to current quarter
+            return self._get_current_quarter_table()
     
     def store_technical_indicators(self, symbol: str, indicators_data: List[Dict]) -> bool:
         """Store basic technical indicators - corrected column names"""
@@ -974,3 +1016,548 @@ class EnhancedDatabaseManager:
             return {'sectors': {}, 'total_allocation': 0, 'sector_count': 0, 'max_sector_percent': 0}
         finally:
             self.return_connection(conn)
+    
+    
+    def _init_connection_pool(self):
+        """Initialize connection pool for better performance"""
+        try:
+            self._connection_pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=config.DB_CONNECTION_POOL_MAX,
+                host=os.getenv('DATABASE_HOST', 'localhost'),
+                port=os.getenv('DATABASE_PORT', '5435'),
+                database=os.getenv('DATABASE_NAME', 'nexus_trading'),
+                user=os.getenv('DATABASE_USER'),
+                password=os.getenv('DATABASE_PASSWORD'),
+                connect_timeout=config.DB_CONNECTION_TIMEOUT
+            )
+            self.logger.info(f"Connection pool initialized: {config.DB_CONNECTION_POOL_MAX} connections")
+        except Exception as e:
+            self.logger.error(f"Failed to initialize connection pool: {e}")
+            # Fall back to regular connection
+            pass
+
+    def _get_pool_connection(self):
+        """Get connection from pool if available, else regular connection"""
+        if self._connection_pool:
+            try:
+                return self._connection_pool.getconn()
+            except:
+                pass
+        return self.get_connection()
+
+    def _put_pool_connection(self, conn):
+        """Return connection to pool if using pool"""
+        if self._connection_pool:
+            try:
+                self._connection_pool.putconn(conn)
+                return
+            except:
+                pass
+        if conn:
+            conn.close()
+
+    def _create_performance_indexes(self):
+        """Create performance indexes"""
+        indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_agent_signals_symbol ON agent_live_signals (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_agent_signals_date ON agent_live_signals (signal_date)",
+            "CREATE INDEX IF NOT EXISTS idx_stocks_categories_symbol ON stocks_categories_table (symbol)",
+            "CREATE INDEX IF NOT EXISTS idx_technical_indicators_symbol ON agent_technical_indicators (symbol, date)"
+        ]
+        
+        conn = self._get_pool_connection()
+        try:
+            with conn.cursor() as cursor:
+                for index_sql in indexes:
+                    try:
+                        cursor.execute(index_sql)
+                    except:
+                        pass  # Index might already exist
+                conn.commit()
+        except Exception as e:
+            self.logger.warning(f"Index creation warning: {e}")
+        finally:
+            self._put_pool_connection(conn)
+
+    def get_historical_data_optimized(self, symbol: str, limit: int = 100) -> pd.DataFrame:
+        """Optimized historical data retrieval with caching"""
+        cache_key = f"hist_{symbol}_{limit}"
+        
+        # Check cache first
+        if self._indicator_cache and cache_key in self._indicator_cache:
+            cache_entry = self._indicator_cache[cache_key]
+            if (datetime.now() - cache_entry['timestamp']).seconds < config.CACHE_EXPIRY_MINUTES * 60:
+                self._performance_stats['cache_hits'] += 1
+                return cache_entry['data']
+        
+        start_time = time.time()
+        
+        # Use existing get_historical_data method instead of custom query
+        try:
+            df = self.get_historical_data(symbol, limit)
+            
+            # Cache result
+            if self._indicator_cache and not df.empty:
+                with self._cache_lock:
+                    self._indicator_cache[cache_key] = {
+                        'data': df.copy(),
+                        'timestamp': datetime.now()
+                    }
+            
+            query_time = time.time() - start_time
+            self._update_performance_stats(query_time)
+            
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"Optimized data retrieval failed for {symbol}: {e}")
+            return pd.DataFrame()
+    
+
+
+    def get_multiple_symbols_data(self, symbols: List[str], limit: int = 100) -> Dict[str, pd.DataFrame]:
+        """Batch retrieval for multiple symbols"""
+        if not symbols:
+            return {}
+        
+        start_time = time.time()
+        results = {}
+        
+        # Use individual retrieval with optimized caching instead of complex batch query
+        try:
+            for symbol in symbols:
+                df = self.get_historical_data_optimized(symbol, limit)
+                results[symbol] = df
+            
+            query_time = time.time() - start_time
+            self.logger.info(f"Batch retrieved {len(symbols)} symbols in {query_time:.2f}s")
+            
+        except Exception as e:
+            self.logger.error(f"Batch retrieval failed: {e}")
+            # Fallback to individual retrieval
+            for symbol in symbols:
+                try:
+                    results[symbol] = self.get_historical_data(symbol, limit)
+                except:
+                    results[symbol] = pd.DataFrame()
+        
+        return results
+
+    def store_multiple_signals(self, signals_batch: List[Dict]) -> bool:
+        """Bulk insert for better performance"""
+        if not signals_batch:
+            return True
+        
+        conn = self._get_pool_connection()
+        try:
+            with conn.cursor() as cursor:
+                values = []
+                for signal in signals_batch:
+                    values.append((
+                        signal.get('symbol'),
+                        signal.get('signal_type'),
+                        signal.get('confidence_score', 0),
+                        signal.get('entry_price', 0),
+                        signal.get('stop_loss', 0),
+                        signal.get('target_price', 0),
+                        signal.get('position_size', 0),
+                        signal.get('reasoning', ''),
+                        datetime.now()
+                    ))
+                
+                cursor.executemany("""
+                    INSERT INTO agent_live_signals 
+                    (symbol, signal_type, confidence_score, entry_price, stop_loss, 
+                     target_price, position_size, reasoning, signal_date)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, values)
+                
+                conn.commit()
+                self.logger.info(f"Bulk stored {len(signals_batch)} signals")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Bulk signal storage failed: {e}")
+            return False
+        finally:
+            self._put_pool_connection(conn)
+
+    def cleanup_cache(self):
+        """Clean expired cache entries"""
+        if not self._indicator_cache:
+            return
+        
+        current_time = datetime.now()
+        expired_keys = []
+        
+        with self._cache_lock:
+            for key, entry in self._indicator_cache.items():
+                if (current_time - entry['timestamp']).seconds > config.CACHE_EXPIRY_MINUTES * 60:
+                    expired_keys.append(key)
+            
+            for key in expired_keys:
+                del self._indicator_cache[key]
+        
+        if expired_keys:
+            self.logger.info(f"Cleaned {len(expired_keys)} expired cache entries")
+
+    def _update_performance_stats(self, query_time: float):
+        """Update performance statistics"""
+        # Initialize if not exists
+        if not hasattr(self, '_performance_stats') or not self._performance_stats:
+            self._performance_stats = {
+                'queries_executed': 0,
+                'cache_hits': 0,
+                'avg_query_time': 0.0,
+                'last_cleanup': datetime.now()
+            }
+        
+        self._performance_stats['queries_executed'] += 1
+        total_queries = self._performance_stats['queries_executed']
+        current_avg = self._performance_stats['avg_query_time']
+        
+        # Calculate rolling average
+        self._performance_stats['avg_query_time'] = (
+            (current_avg * (total_queries - 1) + query_time) / total_queries
+        )
+    
+
+
+    def get_performance_stats(self) -> Dict:
+        """Get current performance statistics"""
+        # Initialize performance stats if not exist
+        if not hasattr(self, '_performance_stats') or not self._performance_stats:
+            self._performance_stats = {
+                'queries_executed': 0,
+                'cache_hits': 0,
+                'avg_query_time': 0.0,
+                'last_cleanup': datetime.now()
+            }
+        
+        cache_hit_rate = 0
+        if self._performance_stats['queries_executed'] > 0:
+            cache_hit_rate = (self._performance_stats['cache_hits'] / 
+                            self._performance_stats['queries_executed']) * 100
+        
+        return {
+            'queries_executed': self._performance_stats['queries_executed'],
+            'cache_hits': self._performance_stats['cache_hits'],
+            'cache_hit_rate': round(cache_hit_rate, 2),
+            'avg_query_time': round(self._performance_stats['avg_query_time'], 3),
+            'cache_size': len(self._indicator_cache) if self._indicator_cache else 0,
+            'pool_status': 'active' if hasattr(self, '_connection_pool') and self._connection_pool else 'inactive'
+        }
+
+    def optimize_database(self):
+        """Run database optimization tasks"""
+        conn = self._get_pool_connection()
+        try:
+            with conn.cursor() as cursor:
+                # Update table statistics
+                cursor.execute("ANALYZE stocks_categories_table")
+                cursor.execute("ANALYZE agent_live_signals")
+                cursor.execute("ANALYZE agent_technical_indicators")
+                
+                # Cleanup old signals (keep last 30 days)
+                cleanup_date = datetime.now() - timedelta(days=30)
+                cursor.execute(
+                    "DELETE FROM agent_live_signals WHERE signal_date < %s",
+                    (cleanup_date,)
+                )
+                
+                conn.commit()
+                self.logger.info("Database optimization completed")
+                
+        except Exception as e:
+            self.logger.error(f"Database optimization failed: {e}")
+        finally:
+            self._put_pool_connection(conn)
+
+    def close_connections(self):
+        """Clean shutdown of connection pool"""
+        if self._connection_pool:
+            try:
+                self._connection_pool.closeall()
+                self.logger.info("Connection pool closed")
+            except:
+                pass
+    
+    # ==========================================
+# ADD THESE METHODS TO EnhancedDatabaseManager class
+# ==========================================
+
+    def get_dashboard_metrics(self) -> Dict:
+        """Get metrics for dashboard display"""
+        try:
+            conn = self.get_connection()
+            with conn.cursor() as cursor:
+                # Recent signals count
+                cursor.execute("""
+                    SELECT COUNT(*) FROM agent_live_signals 
+                    WHERE signal_date >= NOW() - INTERVAL '24 hours'
+                """)
+                recent_signals = cursor.fetchone()[0]
+                
+                # Signal distribution
+                cursor.execute("""
+                    SELECT signal_type, COUNT(*) FROM agent_live_signals 
+                    WHERE signal_date >= NOW() - INTERVAL '7 days'
+                    GROUP BY signal_type
+                """)
+                signal_distribution = dict(cursor.fetchall())
+                
+                # Average confidence - use correct column name
+                cursor.execute("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'agent_live_signals' 
+                    AND column_name IN ('overall_confidence', 'technical_score', 'confidence_score')
+                """)
+                
+                confidence_columns = [row[0] for row in cursor.fetchall()]
+                if confidence_columns:
+                    confidence_col = confidence_columns[0]  # Use first available
+                    cursor.execute(f"""
+                        SELECT AVG({confidence_col}) FROM agent_live_signals 
+                        WHERE signal_date >= NOW() - INTERVAL '24 hours'
+                    """)
+                    avg_confidence = cursor.fetchone()[0] or 0
+                else:
+                    avg_confidence = 0.5  # Default
+                
+                return {
+                    'recent_signals_24h': recent_signals,
+                    'signal_distribution_7d': signal_distribution,
+                    'avg_confidence_24h': float(avg_confidence),
+                    'last_updated': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Dashboard metrics query failed: {e}")
+            return {'error': str(e)}
+    
+    def get_system_statistics(self) -> Dict:
+        """Get comprehensive system statistics"""
+        try:
+            conn = self.get_connection()
+            with conn.cursor() as cursor:
+                stats = {}
+                
+                # Total signals
+                cursor.execute("SELECT COUNT(*) FROM agent_live_signals")
+                stats['total_signals'] = cursor.fetchone()[0]
+                
+                # Symbols analyzed
+                cursor.execute("SELECT COUNT(DISTINCT symbol) FROM agent_live_signals")
+                stats['unique_symbols'] = cursor.fetchone()[0]
+                
+                # Database size info
+                cursor.execute("""
+                    SELECT 
+                        schemaname, 
+                        tablename, 
+                        pg_total_relation_size(schemaname||'.'||tablename) as size
+                    FROM pg_tables 
+                    WHERE schemaname = 'public' 
+                    AND tablename LIKE 'agent_%'
+                """)
+                
+                table_sizes = {}
+                total_size = 0
+                for row in cursor.fetchall():
+                    size_mb = row[2] / (1024 * 1024)
+                    table_sizes[row[1]] = round(size_mb, 2)
+                    total_size += size_mb
+                
+                stats['table_sizes_mb'] = table_sizes
+                stats['total_database_size_mb'] = round(total_size, 2)
+                
+                return stats
+                
+        except Exception as e:
+            self.logger.error(f"System statistics query failed: {e}")
+            return {'error': str(e)}
+    
+    def cleanup_old_data(self) -> Dict:
+        """Clean up old data and return cleanup summary"""
+        import config
+        
+        try:
+            conn = self.get_connection()
+            cleanup_summary = {}
+            
+            with conn.cursor() as cursor:
+                # Clean old signals
+                cutoff_date = datetime.now() - timedelta(days=config.DATA_RETENTION_DAYS)
+                
+                # Check if table exists first
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'agent_live_signals'
+                    )
+                """)
+                
+                if cursor.fetchone()[0]:
+                    cursor.execute("""
+                        DELETE FROM agent_live_signals 
+                        WHERE signal_date < %s
+                    """, (cutoff_date,))
+                    
+                    signals_cleaned = cursor.rowcount
+                    cleanup_summary['signals_cleaned'] = signals_cleaned
+                else:
+                    cleanup_summary['signals_cleaned'] = 0
+                
+                # Clean old technical indicators if table exists
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'agent_technical_indicators'
+                    )
+                """)
+                
+                if cursor.fetchone()[0]:
+                    cursor.execute("""
+                        DELETE FROM agent_technical_indicators 
+                        WHERE date < %s
+                    """, (cutoff_date,))
+                    
+                    indicators_cleaned = cursor.rowcount
+                    cleanup_summary['indicators_cleaned'] = indicators_cleaned
+                else:
+                    cleanup_summary['indicators_cleaned'] = 0
+                
+                conn.commit()
+                
+                cleanup_summary['cleanup_date'] = cutoff_date.isoformat()
+                cleanup_summary['status'] = 'completed'
+                
+                self.logger.info(f"Data cleanup completed: {cleanup_summary}")
+                return cleanup_summary
+                
+        except Exception as e:
+            self.logger.error(f"Data cleanup failed: {e}")
+            return {'error': str(e), 'status': 'failed'}
+    
+    def get_health_check_data(self) -> Dict:
+        """Get data for system health checks"""
+        try:
+            health_data = {}
+            
+            # Test connection
+            health_data['database_connected'] = self.test_connection()
+            
+            # Check table accessibility
+            conn = self.get_connection()
+            with conn.cursor() as cursor:
+                # Check if main tables exist and are accessible
+                tables_to_check = [
+                    'stocks_categories_table',
+                    'agent_live_signals',
+                    'agent_technical_indicators'
+                ]
+                
+                table_status = {}
+                for table in tables_to_check:
+                    try:
+                        cursor.execute(f"SELECT COUNT(*) FROM {table} LIMIT 1")
+                        table_status[table] = 'accessible'
+                    except Exception as e:
+                        table_status[table] = f'error: {str(e)[:50]}'
+                
+                health_data['table_status'] = table_status
+                
+                # Check recent data activity
+                cursor.execute("""
+                    SELECT COUNT(*) FROM agent_live_signals 
+                    WHERE signal_date >= NOW() - INTERVAL '1 hour'
+                """)
+                recent_activity = cursor.fetchone()[0]
+                health_data['recent_activity'] = recent_activity
+                
+            # Performance stats
+            if hasattr(self, 'get_performance_stats'):
+                health_data['performance'] = self.get_performance_stats()
+            
+            health_data['last_checked'] = datetime.now().isoformat()
+            return health_data
+            
+        except Exception as e:
+            return {
+                'error': str(e),
+                'database_connected': False,
+                'last_checked': datetime.now().isoformat()
+            }
+    
+    def backup_critical_data(self) -> Dict:
+        """Create backup of critical data"""
+        try:
+            from pathlib import Path
+            import json
+            
+            # Create backup directory
+            backup_dir = Path('backups')
+            backup_dir.mkdir(exist_ok=True)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_file = backup_dir / f"system_backup_{timestamp}.json"
+            
+            # Get critical data
+            conn = self.get_connection()
+            backup_data = {}
+            
+            with conn.cursor() as cursor:
+                # First check what columns actually exist
+                cursor.execute("""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'agent_live_signals'
+                """)
+                
+                available_columns = [row[0] for row in cursor.fetchall()]
+                self.logger.info(f"Available columns in agent_live_signals: {available_columns}")
+                
+                # Use existing columns or provide defaults
+                if 'overall_confidence' in available_columns:
+                    confidence_col = 'overall_confidence'
+                elif 'technical_score' in available_columns:
+                    confidence_col = 'technical_score'
+                else:
+                    confidence_col = '0.5 as confidence_score'  # Default value
+                
+                # Recent signals with correct column names
+                cursor.execute(f"""
+                    SELECT symbol, signal_type, {confidence_col}, signal_date 
+                    FROM agent_live_signals 
+                    WHERE signal_date >= NOW() - INTERVAL '7 days'
+                    ORDER BY signal_date DESC
+                    LIMIT 100
+                """)
+                
+                signals = []
+                for row in cursor.fetchall():
+                    signals.append({
+                        'symbol': row[0],
+                        'signal_type': row[1],
+                        'confidence_score': float(row[2]) if row[2] is not None else 0.5,
+                        'signal_date': row[3].isoformat() if row[3] else datetime.now().isoformat()
+                    })
+                
+                backup_data['recent_signals'] = signals
+                backup_data['backup_timestamp'] = timestamp
+                backup_data['record_count'] = len(signals)
+            
+            # Save backup
+            with open(backup_file, 'w') as f:
+                json.dump(backup_data, f, indent=2)
+            
+            return {
+                'status': 'completed',
+                'backup_file': str(backup_file),
+                'records_backed_up': len(signals),
+                'timestamp': timestamp
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Backup failed: {e}")
+            return {'status': 'failed', 'error': str(e)}

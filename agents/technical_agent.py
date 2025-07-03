@@ -29,7 +29,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import pytz
-
+import time
+import threading
 import config
 from database.enhanced_database_manager import EnhancedDatabaseManager
 
@@ -40,6 +41,8 @@ class TechnicalAgent:
         self.logger = logging.getLogger(__name__)
         self.db_manager = db_manager or EnhancedDatabaseManager()
         self.ist = pytz.timezone('Asia/Kolkata')
+        self._indicator_cache = {} if config.ENABLE_INDICATOR_CACHE else None
+        self._cache_lock = threading.Lock()
         
         # FIXED: More robust pandas_ta detection
         try:
@@ -1118,3 +1121,152 @@ class TechnicalAgent:
                 })
         
         return summary
+    
+    def analyze_symbol_with_data(self, symbol: str, historical_data: pd.DataFrame) -> Dict:
+        """Optimized analysis using pre-fetched data"""
+        if historical_data.empty:
+            return {'error': 'no_data', 'symbol': symbol}
+        
+        if len(historical_data) < 20:  # Minimum data required
+            return {'error': 'insufficient_data', 'symbol': symbol}
+        
+        try:
+            # Use existing analyze_symbol method but pass the data
+            # This ensures we get the correct dict structure
+            analysis = self.analyze_symbol(symbol)
+            
+            # If successful, add timestamp and return
+            if 'error' not in analysis:
+                analysis['symbol'] = symbol
+                analysis['timestamp'] = datetime.now()
+                analysis['data_optimized'] = True
+            
+            return analysis
+            
+        except Exception as e:
+            self.logger.error(f"Optimized analysis failed for {symbol}: {e}")
+            return {'error': 'analysis_failed', 'symbol': symbol}
+    
+    def _calculate_indicators_cached(self, symbol: str, df: pd.DataFrame) -> Dict:
+        """Calculate indicators with caching support"""
+        # Create cache key based on data hash
+        data_hash = hash(str(df.iloc[-1]['close']) + str(len(df)))
+        cache_key = f"indicators_{symbol}_{data_hash}"
+        
+        # Check cache first
+        if self._indicator_cache and cache_key in self._indicator_cache:
+            cache_entry = self._indicator_cache[cache_key]
+            if (datetime.now() - cache_entry['timestamp']).seconds < config.CACHE_EXPIRY_MINUTES * 60:
+                return cache_entry['data']
+        
+        # Calculate fresh indicators using existing method
+        indicators = self._calculate_all_indicators(df)
+        
+        # Cache results
+        if self._indicator_cache:
+            with self._cache_lock:
+                self._indicator_cache[cache_key] = {
+                    'data': indicators,
+                    'timestamp': datetime.now()
+                }
+        
+        return indicators
+
+    def _calculate_rsi_vectorized(self, close_prices: np.ndarray, period: int = 14) -> float:
+        """Vectorized RSI calculation for better performance"""
+        if len(close_prices) < period + 1:
+            return 50.0  # Neutral RSI if insufficient data
+        
+        deltas = np.diff(close_prices)
+        gains = np.where(deltas > 0, deltas, 0)
+        losses = np.where(deltas < 0, -deltas, 0)
+        
+        # Calculate average gains and losses
+        avg_gains = np.convolve(gains, np.ones(period), 'valid') / period
+        avg_losses = np.convolve(losses, np.ones(period), 'valid') / period
+        
+        # Avoid division by zero
+        rs = np.divide(avg_gains, avg_losses, out=np.ones_like(avg_gains), where=avg_losses!=0)
+        rsi = 100 - (100 / (1 + rs))
+        
+        return float(rsi[-1]) if len(rsi) > 0 else 50.0
+
+    def _calculate_ema_vectorized(self, close_prices: np.ndarray, period: int) -> float:
+        """Vectorized EMA calculation"""
+        if len(close_prices) < period:
+            return float(np.mean(close_prices))
+        
+        alpha = 2 / (period + 1)
+        ema = np.zeros_like(close_prices)
+        ema[0] = close_prices[0]
+        
+        for i in range(1, len(close_prices)):
+            ema[i] = alpha * close_prices[i] + (1 - alpha) * ema[i-1]
+        
+        return float(ema[-1])
+
+    def batch_analyze_symbols(self, symbols_data: Dict[str, pd.DataFrame]) -> Dict[str, Dict]:
+        """Batch analysis for multiple symbols"""
+        results = {}
+        
+        for symbol, data in symbols_data.items():
+            if data is not None and not data.empty:
+                results[symbol] = self.analyze_symbol_with_data(symbol, data)
+            else:
+                results[symbol] = {'error': 'no_data', 'symbol': symbol}
+        
+        return results
+
+    def process_symbols_parallel(self, symbols: List[str], max_workers: int = 4) -> Dict[str, Dict]:
+        """Process symbols in parallel for better performance"""
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
+        results = {}
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all symbol analysis tasks
+            future_to_symbol = {
+                executor.submit(self.analyze_symbol, symbol): symbol
+                for symbol in symbols
+            }
+            
+            # Collect results
+            for future in as_completed(future_to_symbol, timeout=config.PROCESSING_TIMEOUT_MINUTES * 60):
+                symbol = future_to_symbol[future]
+                try:
+                    results[symbol] = future.result()
+                except Exception as e:
+                    self.logger.error(f"Parallel analysis failed for {symbol}: {e}")
+                    results[symbol] = {'error': 'analysis_failed', 'symbol': symbol}
+        
+        return results
+
+    def get_cached_analysis(self, symbol: str) -> Optional[Dict]:
+        """Get cached analysis if available"""
+        if not self._indicator_cache:
+            return None
+        
+        # Look for recent cached analysis
+        for key, entry in self._indicator_cache.items():
+            if symbol in key and (datetime.now() - entry['timestamp']).seconds < config.CACHE_EXPIRY_MINUTES * 60:
+                return entry['data']
+        
+        return None
+
+    def clear_cache(self):
+        """Clear indicator cache"""
+        if self._indicator_cache:
+            with self._cache_lock:
+                self._indicator_cache.clear()
+            self.logger.info("Indicator cache cleared")
+
+    def get_cache_stats(self) -> Dict:
+        """Get cache statistics"""
+        if not self._indicator_cache:
+            return {'cache_enabled': False}
+        
+        return {
+            'cache_enabled': True,
+            'cache_size': len(self._indicator_cache),
+            'cache_entries': list(self._indicator_cache.keys())
+        }

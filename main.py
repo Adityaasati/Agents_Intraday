@@ -6,11 +6,11 @@ PURPOSE: Main Entry Point - Primary system controller with all execution modes
 
 DESCRIPTION:
 - Main entry point for the Nexus Trading System
-- Supports multiple execution modes: setup, test, demo, integration, live, paper, signals
+- Supports multiple execution modes: setup, test, demo, integration, live, paper, signals, performance, batch, optimize
 - Handles system initialization, validation, and testing
 - Integrates database, technical analysis, and system health checks
 - Provides command-line interface for system operations
-- **UPDATED**: Now includes technical analysis testing and validation, live trading, paper trading
+- **UPDATED**: Now includes technical analysis testing and validation, live trading, paper trading, performance optimization
 
 EXECUTION MODES:
 - setup: Initialize environment and verify basic setup
@@ -20,6 +20,9 @@ EXECUTION MODES:
 - live: Live trading mode with trade mode control
 - paper: Paper trading mode
 - signals: Signal generation only mode
+- performance: Performance testing and benchmarking
+- batch: Enhanced batch processing mode
+- optimize: Database and system optimization mode
 
 DEPENDENCIES:
 - database/enhanced_database_manager.py (for database operations)
@@ -27,6 +30,7 @@ DEPENDENCIES:
 - agents/technical_agent.py (for technical analysis)
 - utils/data_updater.py (for data pipeline testing)
 - utils/logger_setup.py (for logging)
+- utils/performance_monitor.py (for performance monitoring)
 
 USAGE:
 - python main.py --mode setup
@@ -36,6 +40,9 @@ USAGE:
 - python main.py --mode live
 - python main.py --mode paper
 - python main.py --mode signals
+- python main.py --mode performance
+- python main.py --mode batch
+- python main.py --mode optimize
 """
 
 import argparse
@@ -44,7 +51,9 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import traceback
-
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import List, Dict
 try:
     from advanced_analysis_integration import AdvancedAnalysis
     ADVANCED_FEATURES_AVAILABLE = True
@@ -118,6 +127,16 @@ class NexusTradingSystem:
                 return self._paper_trading_mode()
             elif mode == 'signals':
                 return self._signals_mode()
+            elif mode == 'performance':
+                return self._performance_test_mode()
+            elif mode == 'batch':
+                return self._batch_processing_mode()
+            elif mode == 'optimize':
+                return self._optimization_mode()
+            elif mode == 'dashboard':
+                return self._dashboard_mode()
+            elif mode == 'report':
+                return self._report_mode()
             else:
                 self.logger.error(f"Unknown mode: {mode}")
                 return False
@@ -134,8 +153,6 @@ class NexusTradingSystem:
         """Live trading mode with trade mode control"""
         
         try:
-            import config
-            
             print("=" * 60)
             print("LIVE TRADING MODE")
             print("=" * 60)
@@ -197,8 +214,6 @@ class NexusTradingSystem:
         """Paper trading mode - Execute paper trades"""
         
         try:
-            import config
-            
             if not config.PAPER_TRADING_MODE:
                 print("Paper trading mode is disabled in config")
                 return False
@@ -481,6 +496,290 @@ class NexusTradingSystem:
         
         return all(results.values())
     
+    def _performance_test_mode(self) -> bool:
+        """Performance testing and benchmarking"""
+        self.logger.info("Starting performance test mode")
+        
+        try:
+            import config
+            # Import performance monitor
+            from utils.performance_monitor import get_performance_monitor
+            performance_monitor = get_performance_monitor()
+            
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.start_monitoring()
+                
+                if not self.db_manager:
+                    from database.enhanced_database_manager import EnhancedDatabaseManager
+                    self.db_manager = EnhancedDatabaseManager()
+            
+            # Test different batch sizes
+            test_configs = [
+                {'batch_size': 10, 'workers': 2},
+                {'batch_size': 25, 'workers': 4},
+                {'batch_size': 50, 'workers': 6}
+            ]
+            
+            results = []
+            test_symbols = self.db_manager.get_testing_symbols(100)
+            
+            for test_config in test_configs:
+                self.logger.info(f"Testing batch_size={test_config['batch_size']}, workers={test_config['workers']}")
+                
+                start_time = time.time()
+                success = self._process_symbols_batch(
+                    test_symbols[:test_config['batch_size']], 
+                    test_config['workers']
+                )
+                elapsed_time = time.time() - start_time
+                
+                symbols_per_second = test_config['batch_size'] / elapsed_time if elapsed_time > 0 else 0
+                
+                results.append({
+                    'config': test_config,
+                    'elapsed_time': elapsed_time,
+                    'symbols_per_second': symbols_per_second,
+                    'success': success
+                })
+                
+                self.logger.info(f"Result: {symbols_per_second:.1f} symbols/second")
+            
+            # Find optimal configuration
+            best_result = max(results, key=lambda x: x['symbols_per_second'] if x['success'] else 0)
+            self.logger.info(f"Optimal config: {best_result['config']}")
+            
+            # Performance summary
+            stats = performance_monitor.get_performance_summary()
+            self.logger.info(f"System status: {stats['status']}")
+            
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.stop_monitoring()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Performance test failed: {e}")
+            return False
+
+    def _batch_processing_mode(self) -> bool:
+        """Enhanced batch processing mode"""
+        self.logger.info("Starting optimized batch processing")
+        
+        try:
+            import config
+            # Start performance monitoring
+            from utils.performance_monitor import get_performance_monitor
+            performance_monitor = get_performance_monitor()
+            
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.start_monitoring()
+                
+                if not self.db_manager:
+                    from database.enhanced_database_manager import EnhancedDatabaseManager
+                    self.db_manager = EnhancedDatabaseManager()
+            
+            # Get all symbols for processing
+            all_symbols = self.db_manager.get_testing_symbols(500)
+            if not all_symbols:
+                self.logger.error("No symbols available for processing")
+                return False
+            
+            # Calculate optimal batch configuration
+            total_symbols = len(all_symbols)
+            batch_size = config.get_optimal_batch_size(total_symbols)
+            worker_count = config.get_worker_count(batch_size)
+            
+            self.logger.info(f"Processing {total_symbols} symbols in batches of {batch_size} with {worker_count} workers")
+            
+            # Process in batches
+            successful_batches = 0
+            total_batches = (total_symbols + batch_size - 1) // batch_size
+            
+            for i in range(0, total_symbols, batch_size):
+                batch_symbols = all_symbols[i:i + batch_size]
+                batch_num = (i // batch_size) + 1
+                
+                self.logger.info(f"Processing batch {batch_num}/{total_batches} ({len(batch_symbols)} symbols)")
+                
+                if self._process_symbols_batch(batch_symbols, worker_count):
+                    successful_batches += 1
+                
+                # Performance monitoring
+                if hasattr(self.db_manager, 'get_performance_stats'):
+                    db_stats = self.db_manager.get_performance_stats()
+                    if db_stats.get('cache_size', 0) > config.CACHE_SIZE_INDICATORS:
+                        self.logger.info("Running cache cleanup")
+                        self.db_manager.cleanup_cache()
+            
+            self.logger.info(f"Batch processing completed: {successful_batches}/{total_batches} successful")
+            
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.stop_monitoring()
+            
+            return successful_batches >= total_batches * 0.8  # 80% success rate
+            
+        except Exception as e:
+            self.logger.error(f"Batch processing failed: {e}")
+            return False
+
+    def _process_symbols_batch(self, symbols: List[str], worker_count: int) -> bool:
+        """Process symbols in parallel batch"""
+        if not symbols:
+            return True
+        
+        import config
+        start_time = time.time()
+        successful_symbols = 0
+        
+        try:
+            # Pre-fetch data for all symbols if method exists
+            if hasattr(self.db_manager, 'get_multiple_symbols_data'):
+                symbols_data = self.db_manager.get_multiple_symbols_data(symbols)
+            else:
+                symbols_data = {}
+            
+            # Process symbols in parallel
+            with ThreadPoolExecutor(max_workers=worker_count) as executor:
+                # Submit all symbol processing tasks
+                future_to_symbol = {
+                    executor.submit(self._process_single_symbol_optimized, symbol, symbols_data.get(symbol)): symbol
+                    for symbol in symbols
+                }
+                
+                # Collect results
+                for future in as_completed(future_to_symbol, timeout=config.PROCESSING_TIMEOUT_MINUTES * 60):
+                    symbol = future_to_symbol[future]
+                    try:
+                        if future.result():
+                            successful_symbols += 1
+                    except Exception as e:
+                        self.logger.error(f"Symbol {symbol} processing failed: {e}")
+            
+            elapsed_time = time.time() - start_time
+            success_rate = successful_symbols / len(symbols) * 100
+            
+            self.logger.info(f"Batch completed: {successful_symbols}/{len(symbols)} symbols ({success_rate:.1f}%) in {elapsed_time:.2f}s")
+            
+            return success_rate >= 80  # 80% success rate threshold
+            
+        except Exception as e:
+            self.logger.error(f"Batch processing error: {e}")
+            return False
+
+    def _process_single_symbol_optimized(self, symbol: str, historical_data=None) -> bool:
+        """Optimized single symbol processing"""
+        import config
+        start_time = time.time()
+        
+        try:
+            # Get data if not provided
+            if historical_data is None or historical_data.empty:
+                if hasattr(self.db_manager, 'get_historical_data_optimized'):
+                    historical_data = self.db_manager.get_historical_data_optimized(symbol)
+                else:
+                    historical_data = self.db_manager.get_historical_data(symbol)
+            
+            # Skip if no data
+            if historical_data is None or historical_data.empty:
+                return False
+            
+            # Import agents
+            from agents.technical_agent import TechnicalAgent
+            
+            # Process with cached data
+            tech_agent = TechnicalAgent(self.db_manager)
+            
+            # Use optimized method if available
+            if hasattr(tech_agent, 'analyze_symbol_with_data'):
+                analysis = tech_agent.analyze_symbol_with_data(symbol, historical_data)
+            else:
+                analysis = tech_agent.analyze_symbol(symbol)
+            
+            if 'error' in analysis:
+                return False
+            
+            # Record performance
+            processing_time = time.time() - start_time
+            
+            # Log performance if enabled
+            if config.LOG_PERFORMANCE_DETAILS:
+                self.logger.debug(f"Processed {symbol} in {processing_time:.2f}s")
+            
+            return analysis.get('confidence_score', 0) > 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Optimized processing failed for {symbol}: {e}")
+            return False
+
+    def _optimization_mode(self) -> bool:
+        """Database and system optimization mode"""
+        self.logger.info("Starting system optimization")
+        
+        if not self.db_manager:
+            from database.enhanced_database_manager import EnhancedDatabaseManager
+            self.db_manager = EnhancedDatabaseManager()
+        
+        optimization_tasks = [
+            ("Database optimization", self._optimize_database),
+            ("Cache cleanup", self._cleanup_caches),
+            ("Performance monitoring cleanup", self._cleanup_performance_data),
+            ("Connection health check", self._check_connection_health)
+        ]
+        
+        successful_tasks = 0
+        for task_name, task_func in optimization_tasks:
+            try:
+                self.logger.info(f"Running: {task_name}")
+                task_func()
+                successful_tasks += 1
+                self.logger.info(f"Completed: {task_name}")
+            except Exception as e:
+                self.logger.error(f"Failed {task_name}: {e}")
+        
+        # Performance summary
+        if hasattr(self.db_manager, 'get_performance_stats'):
+            db_stats = self.db_manager.get_performance_stats()
+            self.logger.info(f"Database performance: {db_stats}")
+        
+        return successful_tasks == len(optimization_tasks)
+
+    def _optimize_database(self):
+        """Optimize database performance"""
+        if hasattr(self.db_manager, 'optimize_database'):
+            self.db_manager.optimize_database()
+        else:
+            self.logger.info("Database optimization not available")
+
+    def _cleanup_caches(self):
+        """Clean up all caches"""
+        if hasattr(self.db_manager, 'cleanup_cache'):
+            self.db_manager.cleanup_cache()
+        else:
+            self.logger.info("Cache cleanup not available")
+
+    def _cleanup_performance_data(self):
+        """Clean up performance monitoring data"""
+        try:
+            from utils.performance_monitor import get_performance_monitor
+            performance_monitor = get_performance_monitor()
+            if hasattr(performance_monitor, 'cleanup_old_data'):
+                performance_monitor.cleanup_old_data()
+        except:
+            self.logger.info("Performance data cleanup not available")
+
+    def _check_connection_health(self):
+        """Check database connection health"""
+        try:
+            # Test connection
+            test_symbols = self.db_manager.get_testing_symbols(1)
+            if test_symbols:
+                self.logger.info("Database connections are healthy")
+            else:
+                self.logger.warning("Connection health check: no symbols returned")
+        except Exception as e:
+            self.logger.error(f"Connection health check failed: {e}")
+            raise
+
     def _test_sentiment_analysis(self) -> bool:
         """Test sentiment analysis capabilities - Day 3A"""
         
@@ -902,6 +1201,168 @@ class NexusTradingSystem:
         except Exception as e:
             self.logger.error(f"Health check failed: {e}")
             return False
+    def _dashboard_mode(self) -> bool:
+        """Real-time monitoring dashboard mode"""
+        import config
+        
+        if not config.ENABLE_DASHBOARD:
+            self.logger.error("Dashboard is disabled in configuration")
+            return False
+        
+        self.logger.info("Starting dashboard mode")
+        
+        try:
+            # Initialize database manager
+            if not self.db_manager:
+                from database.enhanced_database_manager import EnhancedDatabaseManager
+                self.db_manager = EnhancedDatabaseManager()
+            
+            # Initialize dashboard monitor
+            from utils.dashboard_monitor import get_dashboard_monitor
+            dashboard = get_dashboard_monitor(self.db_manager)
+            
+            # Start monitoring
+            from utils.performance_monitor import get_performance_monitor
+            performance_monitor = get_performance_monitor()
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.start_monitoring()
+            
+            self.logger.info(f"Dashboard starting on {config.DASHBOARD_HOST}:{config.DASHBOARD_PORT}")
+            
+            # Simple dashboard loop
+            try:
+                while True:
+                    # Generate dashboard data
+                    dashboard_data = dashboard.generate_dashboard_data()
+                    
+                    # Display key metrics
+                    status = dashboard_data.get('system_status', {})
+                    if status.get('health_score'):
+                        self.logger.info(f"Health: {status['health_score']}/100 ({status['status']})")
+                    
+                    # Check for alerts
+                    alerts = dashboard_data.get('alerts', [])
+                    if alerts:
+                        self.logger.warning(f"Active alerts: {len(alerts)}")
+                    
+                    time.sleep(config.DASHBOARD_AUTO_REFRESH)
+                    
+            except KeyboardInterrupt:
+                self.logger.info("Dashboard stopped by user")
+                
+            if config.ENABLE_PERFORMANCE_MONITORING:
+                performance_monitor.stop_monitoring()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Dashboard mode failed: {e}")
+            return False
+
+    def _report_mode(self) -> bool:
+        """Generate system reports"""
+        import config
+        
+        if not config.ENABLE_AUTO_REPORTS:
+            self.logger.error("Automated reporting is disabled")
+            return False
+        
+        self.logger.info("Starting report generation")
+        
+        try:
+            # Initialize database manager
+            if not self.db_manager:
+                from database.enhanced_database_manager import EnhancedDatabaseManager
+                self.db_manager = EnhancedDatabaseManager()
+            
+            # Generate reports
+            from reports.system_dashboard import SystemReporter
+            reporter = SystemReporter(self.db_manager)
+            
+            # Daily report
+            daily_report = reporter.generate_daily_report()
+            if 'error' not in daily_report:
+                self.logger.info("Daily report generated successfully")
+            
+            # System health report
+            health_report = reporter.generate_health_report()
+            if 'error' not in health_report:
+                self.logger.info("Health report generated successfully")
+            
+            # Performance report
+            performance_report = reporter.generate_performance_report()
+            if 'error' not in performance_report:
+                self.logger.info("Performance report generated successfully")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Report generation failed: {e}")
+            return False
+
+    def _system_maintenance(self):
+        """Run system maintenance tasks"""
+        import config
+        
+        try:
+            self.logger.info("Running system maintenance")
+            
+            # Database optimization
+            if hasattr(self.db_manager, 'optimize_database'):
+                self.db_manager.optimize_database()
+            
+            # Cache cleanup
+            if hasattr(self.db_manager, 'cleanup_cache'):
+                self.db_manager.cleanup_cache()
+            
+            # Log cleanup
+            if config.AUTO_CLEANUP_ENABLED:
+                self._cleanup_old_logs()
+            
+            self.logger.info("System maintenance completed")
+            
+        except Exception as e:
+            self.logger.error(f"System maintenance failed: {e}")
+
+    def _cleanup_old_logs(self):
+        """Clean up old log files"""
+        import config
+        from pathlib import Path
+        
+        try:
+            log_dir = Path('logs')
+            if not log_dir.exists():
+                return
+            
+            cutoff_date = datetime.now() - timedelta(days=config.LOG_RETENTION_DAYS)
+            
+            cleaned_count = 0
+            for log_file in log_dir.glob('*.log'):
+                if log_file.stat().st_mtime < cutoff_date.timestamp():
+                    log_file.unlink()
+                    cleaned_count += 1
+            
+            if cleaned_count > 0:
+                self.logger.info(f"Cleaned {cleaned_count} old log files")
+                
+        except Exception as e:
+            self.logger.error(f"Log cleanup failed: {e}")
+
+    def get_system_health(self) -> Dict:
+        """Get comprehensive system health"""
+        try:
+            # Initialize dashboard monitor
+            if not self.db_manager:
+                from database.enhanced_database_manager import EnhancedDatabaseManager
+                self.db_manager = EnhancedDatabaseManager()
+            
+            from utils.dashboard_monitor import get_dashboard_monitor
+            dashboard = get_dashboard_monitor(self.db_manager)
+            
+            return dashboard.get_system_status()
+            
+        except Exception as e:
+            return {'error': str(e), 'timestamp': datetime.now().isoformat()}
     
     def _report_integration_results(self, results: dict):
         """Report integration test results"""
@@ -924,6 +1385,27 @@ class NexusTradingSystem:
         else:
             print("\nFAILED: Please fix issues before proceeding")
 
+    def shutdown(self):
+        """Clean shutdown of system"""
+        try:
+            # Stop performance monitoring
+            try:
+                from utils.performance_monitor import get_performance_monitor
+                performance_monitor = get_performance_monitor()
+                if hasattr(performance_monitor, 'stop_monitoring'):
+                    performance_monitor.stop_monitoring()
+            except:
+                pass
+            
+            # Close database connections
+            if hasattr(self.db_manager, 'close_connections'):
+                self.db_manager.close_connections()
+            
+            self.logger.info("System shutdown completed")
+            
+        except Exception as e:
+            self.logger.error(f"Shutdown error: {e}")
+
 def main():
     """Main entry point - FIXED VERSION"""
     
@@ -931,7 +1413,7 @@ def main():
     
     # SINGLE, UNIFIED argument parser - no conflicts
     parser.add_argument('--mode', 
-                       choices=['setup', 'test', 'demo', 'integration', 'paper', 'live', 'signals'], 
+                       choices=['setup', 'test', 'demo', 'integration', 'paper', 'live', 'signals', 'performance', 'batch', 'optimize', 'dashboard', 'report'], 
                        default='test',
                        help='Execution mode')
     parser.add_argument('--symbol', 
@@ -942,23 +1424,31 @@ def main():
     # Initialize system
     system = NexusTradingSystem()
     
-    # Run in specified mode with complete logic
-    success = system.run(args.mode, args.symbol)
-    
-    # Exit with appropriate code
-    if success:
-        if args.mode == 'paper':
-            print("\n✅ Paper trading session completed successfully")
-        elif args.mode == 'live':
-            print("\n✅ Live trading session completed successfully")
-        elif args.mode == 'signals':
-            print("\n✅ Signal generation completed successfully")
+    try:
+        # Run in specified mode with complete logic
+        success = system.run(args.mode, args.symbol)
+        
+        # Exit with appropriate code
+        if success:
+            if args.mode == 'paper':
+                print("\n✅ Paper trading session completed successfully")
+            elif args.mode == 'live':
+                print("\n✅ Live trading session completed successfully")
+            elif args.mode == 'signals':
+                print("\n✅ Signal generation completed successfully")
+            else:
+                print(f"\n✅ {args.mode.upper()} mode completed successfully")
         else:
-            print(f"\n✅ {args.mode.upper()} mode completed successfully")
-    else:
-        print(f"\n❌ {args.mode.upper()} mode failed")
-    
-    sys.exit(0 if success else 1)
+            print(f"\n❌ {args.mode.upper()} mode failed")
+        
+        sys.exit(0 if success else 1)
+        
+    except KeyboardInterrupt:
+        print("\n⚠️ Operation cancelled by user")
+        system.shutdown()
+        sys.exit(1)
+    finally:
+        system.shutdown()
 
 if __name__ == "__main__":
     main()
