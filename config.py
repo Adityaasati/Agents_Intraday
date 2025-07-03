@@ -71,7 +71,71 @@ STANDARD_RISK_REWARD_RATIO = 2.5
 MAX_SECTOR_ALLOCATION = 30.0   # Maximum 30% allocation per sector
 MAX_CORRELATION = 0.7          # Maximum correlation between positions
 MIN_DIVERSIFICATION_SECTORS = 3  # Minimum sectors for diversification
+# Add these variables to the existing config.py file (replace the previous live trading section)
 
+# ==========================================
+# LIVE TRADING CONFIGURATION
+# ==========================================
+
+# Master Trading Control
+TRADE_MODE = os.getenv('TRADE_MODE', 'no').lower() == 'yes'  # Simple yes/no control
+LIVE_TRADING_MODE = bool(os.getenv('LIVE_TRADING_MODE', 'False').lower() == 'true')
+LIVE_TRADING_CAPITAL = float(os.getenv('LIVE_TRADING_CAPITAL', '50000'))
+
+# Kite API Configuration (simplified)
+KITE_API_KEY = os.getenv('KITE_API_KEY', '')
+KITE_API_SECRET = os.getenv('KITE_API_SECRET', '')
+
+# Trading Logic Control
+# If TRADE_MODE = no: Generate signals only, no orders
+# If TRADE_MODE = yes: Place actual orders (requires LIVE_TRADING_MODE = true)
+GENERATE_SIGNALS_ONLY = not TRADE_MODE
+
+# Order Management
+LIVE_ORDER_TIMEOUT_SECONDS = 30
+LIVE_ORDER_RETRY_ATTEMPTS = 3
+LIVE_ORDER_RETRY_DELAY_SECONDS = 2
+
+# Live Trading Risk Controls (Conservative)
+LIVE_MAX_LOSS_PER_DAY = 5000
+LIVE_MAX_POSITIONS = 5
+LIVE_POSITION_SIZE_LIMIT = 0.10  # 10% max per position
+LIVE_MIN_CONFIDENCE_THRESHOLD = 0.75
+
+# Market Hours (IST)
+MARKET_OPEN_HOUR = 9
+MARKET_OPEN_MINUTE = 15
+MARKET_CLOSE_HOUR = 15
+MARKET_CLOSE_MINUTE = 30
+
+# Live Execution Settings
+LIVE_EXECUTION_DELAY_SECONDS = 5
+LIVE_PRICE_TOLERANCE_PERCENT = 0.5
+LIVE_QUANTITY_ROUNDING = True
+
+# Monitoring and Alerts
+LIVE_MONITORING_INTERVAL_SECONDS = 30
+LIVE_POSITION_CHECK_INTERVAL_SECONDS = 60
+LIVE_HEARTBEAT_INTERVAL_SECONDS = 300
+
+# Safety Mechanisms
+LIVE_CIRCUIT_BREAKER_LOSS_PERCENT = 3.0
+LIVE_EMERGENCY_EXIT_ENABLED = True
+LIVE_MAX_ORDERS_PER_MINUTE = 5
+
+# Token Management
+KITE_TOKEN_FILE = "kite_token.txt"
+AUTO_REFRESH_TOKEN = True
+
+# Live Trading Logging
+LIVE_TRADING_LOG_LEVEL = 'INFO'
+LIVE_ORDER_LOG_RETENTION_DAYS = 30
+
+# Approved Symbols for Live Trading (Conservative list)
+LIVE_TRADING_APPROVED_SYMBOLS = [
+    'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ITC', 
+    'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'WIPRO'
+]
 # ==========================================
 # SIGNAL GENERATION PARAMETERS
 # ==========================================
@@ -629,3 +693,74 @@ def get_risk_parity_summary() -> dict:
             'risk_free_rate': RISK_FREE_RATE
         }
     }
+# ==========================================
+# PAPER TRADING CONFIGURATION  
+# ==========================================
+
+# Paper Trading Settings
+PAPER_TRADING_MODE = True
+PAPER_TRADING_INITIAL_CAPITAL = float(os.getenv('PAPER_TRADING_CAPITAL', '100000'))
+PAPER_TRADING_COMMISSION = 0.03  # 0.03% commission per trade
+PAPER_TRADING_SLIPPAGE = 0.05    # 0.05% slippage simulation
+
+# Order Management
+MAX_ORDERS_PER_DAY = 20
+ORDER_VALIDITY_HOURS = 24
+AUTO_EXECUTE_SIGNALS = True
+
+# Performance Tracking
+TRACK_TRADE_PERFORMANCE = True
+PERFORMANCE_REPORTING_FREQUENCY = 'daily'
+BENCHMARK_SYMBOL = 'NIFTY50'
+
+# Trade Execution Simulation
+EXECUTION_DELAY_SECONDS = 2
+MARKET_IMPACT_THRESHOLD = 50000
+MARKET_IMPACT_PERCENT = 0.02
+
+# Risk Controls for Paper Trading
+PAPER_MAX_LOSS_PER_DAY = 5000
+PAPER_MAX_POSITIONS = 10
+PAPER_POSITION_SIZE_LIMIT = 0.15
+
+# Reporting Configuration
+GENERATE_DAILY_REPORTS = True
+SAVE_TRADE_HISTORY = True
+TRADE_HISTORY_RETENTION_DAYS = 90
+
+# Add these variables to the end of existing config.py file
+
+# ==========================================
+# PAPER TRADING CONFIGURATION
+# ==========================================
+
+# Paper Trading Settings
+PAPER_TRADING_MODE = True  # Enable paper trading by default
+PAPER_TRADING_INITIAL_CAPITAL = float(os.getenv('PAPER_TRADING_CAPITAL', '100000'))
+PAPER_TRADING_COMMISSION = 0.03  # 0.03% commission per trade
+PAPER_TRADING_SLIPPAGE = 0.05    # 0.05% slippage simulation
+
+# Order Management
+MAX_ORDERS_PER_DAY = 20
+ORDER_VALIDITY_HOURS = 24
+AUTO_EXECUTE_SIGNALS = True  # Auto-convert signals to paper trades
+
+# Performance Tracking
+TRACK_TRADE_PERFORMANCE = True
+PERFORMANCE_REPORTING_FREQUENCY = 'daily'  # daily, weekly, monthly
+BENCHMARK_SYMBOL = 'NIFTY50'
+
+# Trade Execution Simulation
+EXECUTION_DELAY_SECONDS = 2  # Simulate execution delay
+MARKET_IMPACT_THRESHOLD = 50000  # Position size above which market impact applies
+MARKET_IMPACT_PERCENT = 0.02  # Market impact for large positions
+
+# Risk Controls for Paper Trading
+PAPER_MAX_LOSS_PER_DAY = 5000  # Max loss per day in paper trading
+PAPER_MAX_POSITIONS = 10
+PAPER_POSITION_SIZE_LIMIT = 0.15  # 15% max per position
+
+# Reporting Configuration
+GENERATE_DAILY_REPORTS = True
+SAVE_TRADE_HISTORY = True
+TRADE_HISTORY_RETENTION_DAYS = 90

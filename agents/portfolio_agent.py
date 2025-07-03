@@ -1284,3 +1284,521 @@ class PortfolioAgent:
                     return cov_matrix
             
             return NumpyFallback()
+    
+    # Add these methods to the existing PortfolioAgent class in agents/portfolio_agent.py
+
+    def execute_paper_trade(self, signal: Dict) -> Dict:
+        """Execute paper trade from signal"""
+        
+        try:
+            import config
+            from datetime import datetime
+            
+            if not config.PAPER_TRADING_MODE:
+                return {'error': 'Paper trading disabled'}
+            
+            # Simulate execution delay
+            import time
+            time.sleep(1)
+            
+            # Calculate execution details
+            execution_price = signal.get('entry_price', 0)
+            slippage = execution_price * config.PAPER_TRADING_SLIPPAGE / 100
+            final_price = execution_price + slippage
+            
+            commission = signal.get('recommended_position_value', 0) * config.PAPER_TRADING_COMMISSION / 100
+            
+            # Create paper position
+            position_data = {
+                'symbol': signal.get('symbol'),
+                'signal_id': signal.get('id'),
+                'entry_time': datetime.now(),
+                'entry_price': final_price,
+                'quantity': signal.get('recommended_shares', 0),
+                'position_value': signal.get('recommended_position_value', 0),
+                'stop_loss': signal.get('stop_loss'),
+                'target_price': signal.get('target_price'),
+                'commission_paid': commission,
+                'status': 'OPEN'
+            }
+            
+            # Store in database
+            position_id = self._store_paper_position(position_data)
+            
+            self.logger.info(f"Paper trade executed: {signal.get('symbol')} @ {final_price}")
+            
+            return {
+                'status': 'executed',
+                'position_id': position_id,
+                'execution_price': final_price,
+                'commission': commission,
+                'slippage': slippage
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Paper trade execution failed: {e}")
+            return {'error': str(e)}
+    
+    def update_paper_positions(self) -> Dict:
+        """Update all open paper positions with current prices"""
+        
+        try:
+            positions = self._get_open_paper_positions()
+            updated_count = 0
+            
+            for position in positions:
+                symbol = position.get('symbol')
+                current_price = self._get_current_price(symbol)
+                
+                if current_price:
+                    # Calculate unrealized P&L
+                    entry_price = position.get('entry_price', 0)
+                    quantity = position.get('quantity', 0)
+                    unrealized_pnl = (current_price - entry_price) * quantity
+                    unrealized_pnl_percent = (unrealized_pnl / position.get('position_value', 1)) * 100
+                    
+                    # Check stop loss and target
+                    position_update = {
+                        'current_price': current_price,
+                        'unrealized_pnl': unrealized_pnl,
+                        'unrealized_pnl_percent': unrealized_pnl_percent
+                    }
+                    
+                    # Auto-close if stop loss hit
+                    if current_price <= position.get('stop_loss', 0):
+                        position_update.update({
+                            'status': 'STOPPED_OUT',
+                            'exit_time': datetime.now(),
+                            'exit_price': current_price,
+                            'realized_pnl': unrealized_pnl
+                        })
+                    
+                    # Auto-close if target hit
+                    elif current_price >= position.get('target_price', float('inf')):
+                        position_update.update({
+                            'status': 'TARGET_HIT',
+                            'exit_time': datetime.now(),
+                            'exit_price': current_price,
+                            'realized_pnl': unrealized_pnl
+                        })
+                    
+                    self._update_paper_position(position.get('id'), position_update)
+                    updated_count += 1
+            
+            return {'positions_updated': updated_count}
+            
+        except Exception as e:
+            self.logger.error(f"Position update failed: {e}")
+            return {'error': str(e)}
+    
+    def get_paper_portfolio_summary(self) -> Dict:
+        """Get paper trading portfolio summary"""
+        
+        try:
+            positions = self._get_all_paper_positions()
+            open_positions = [p for p in positions if p.get('status') == 'OPEN']
+            closed_positions = [p for p in positions if p.get('status') in ['STOPPED_OUT', 'TARGET_HIT', 'CLOSED']]
+            
+            # Calculate totals
+            total_invested = sum(p.get('position_value', 0) for p in open_positions)
+            total_unrealized = sum(p.get('unrealized_pnl', 0) for p in open_positions)
+            total_realized = sum(p.get('realized_pnl', 0) for p in closed_positions)
+            
+            # Win rate calculation
+            winning_trades = len([p for p in closed_positions if p.get('realized_pnl', 0) > 0])
+            total_trades = len(closed_positions)
+            win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0
+            
+            import config
+            portfolio_value = config.PAPER_TRADING_INITIAL_CAPITAL + total_realized + total_unrealized
+            total_return = ((portfolio_value / config.PAPER_TRADING_INITIAL_CAPITAL) - 1) * 100
+            
+            return {
+                'portfolio_value': round(portfolio_value, 2),
+                'total_invested': round(total_invested, 2),
+                'unrealized_pnl': round(total_unrealized, 2),
+                'realized_pnl': round(total_realized, 2),
+                'total_return_percent': round(total_return, 2),
+                'open_positions': len(open_positions),
+                'total_trades': total_trades,
+                'win_rate': round(win_rate, 1),
+                'available_cash': round(config.PAPER_TRADING_INITIAL_CAPITAL - total_invested + total_realized, 2)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Portfolio summary failed: {e}")
+            return {'error': str(e)}
+    
+    def _store_paper_position(self, position_data: Dict) -> str:
+        """Store paper position in database"""
+        try:
+            query = """
+                INSERT INTO agent_portfolio_positions 
+                (symbol, signal_id, entry_time, entry_price, quantity, position_value, 
+                 current_stop_loss, target_price, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query, (
+                        position_data.get('symbol'),
+                        position_data.get('signal_id'),
+                        position_data.get('entry_time'),
+                        position_data.get('entry_price'),
+                        position_data.get('quantity'),
+                        position_data.get('position_value'),
+                        position_data.get('stop_loss'),
+                        position_data.get('target_price'),
+                        'OPEN'
+                    ))
+                    position_id = cursor.fetchone()[0]
+                    return str(position_id)
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to store paper position: {e}")
+            return None
+    
+    def _get_open_paper_positions(self) -> List[Dict]:
+        """Get all open paper positions"""
+        try:
+            query = "SELECT * FROM agent_portfolio_positions WHERE status = 'OPEN'"
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    return [dict(zip(columns, row)) for row in rows]
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to get open positions: {e}")
+            return []
+    
+    def _update_paper_position(self, position_id: str, updates: Dict):
+        """Update paper position with current data"""
+        try:
+            set_clause = ", ".join([f"{k} = %s" for k in updates.keys()])
+            query = f"UPDATE agent_portfolio_positions SET {set_clause}, updated_at = CURRENT_TIMESTAMP WHERE id = %s"
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query, list(updates.values()) + [position_id])
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to update position: {e}")
+    
+    def _get_current_price(self, symbol: str) -> float:
+        """Get current price for symbol (simulated)"""
+        try:
+            # Get latest price from historical data
+            query = """
+                SELECT close FROM historical_data_3m_2025_q3 
+                WHERE symbol = %s ORDER BY timestamp DESC LIMIT 1
+            """
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query, (symbol,))
+                    result = cursor.fetchone()
+                    return float(result[0]) if result else None
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to get current price for {symbol}: {e}")
+            return None
+    # Add these methods to the existing PortfolioAgent class in agents/portfolio_agent.py
+# Add them at the END of the class, before the closing of the class definition
+
+    def _get_kite_connection(self):
+        """Get authenticated Kite connection with automatic token management"""
+        
+        try:
+            import config
+            from kiteconnect import KiteConnect
+            import json
+            import os
+            from datetime import datetime
+            
+            if not config.KITE_API_KEY or not config.KITE_API_SECRET:
+                return None
+            
+            # Check if token exists and is valid for today
+            if os.path.exists(config.KITE_TOKEN_FILE):
+                try:
+                    with open(config.KITE_TOKEN_FILE, "r") as f:
+                        token_data = json.loads(f.read().strip())
+                        today = datetime.now().strftime("%Y-%m-%d")
+                        
+                        if token_data.get("date") == today and token_data.get("access_token"):
+                            access_token = token_data["access_token"]
+                            
+                            # Test the token
+                            kite = KiteConnect(api_key=config.KITE_API_KEY)
+                            kite.set_access_token(access_token)
+                            
+                            try:
+                                profile = kite.profile()
+                                self.logger.info(f"Kite connected as: {profile.get('user_name', 'Unknown')}")
+                                return kite
+                            except Exception:
+                                # Token invalid, remove file
+                                os.remove(config.KITE_TOKEN_FILE)
+                except Exception:
+                    # File corrupted, remove it
+                    if os.path.exists(config.KITE_TOKEN_FILE):
+                        os.remove(config.KITE_TOKEN_FILE)
+            
+            # Need to generate new token
+            self.logger.warning("Kite token missing or expired - manual token generation required")
+            self.logger.info("Run: python kite_token_generator.py to generate new token")
+            return None
+                
+        except Exception as e:
+            self.logger.error(f"Kite connection failed: {e}")
+            return None
+
+    def execute_live_trade(self, signal: Dict) -> Dict:
+        """Execute live trade with trade mode control"""
+        
+        try:
+            import config
+            
+            # Check trade mode first
+            if not config.TRADE_MODE:
+                self.logger.info(f"TRADE_MODE=no: Signal generated for {signal.get('symbol')} but no order placed")
+                return {
+                    'status': 'signal_only',
+                    'reason': 'TRADE_MODE is disabled',
+                    'signal_confidence': signal.get('overall_confidence', 0),
+                    'would_execute': 'yes' if self._would_execute_live_trade(signal) else 'no'
+                }
+            
+            # Original live trading logic continues only if TRADE_MODE = yes
+            if not config.LIVE_TRADING_MODE:
+                return self.execute_paper_trade(signal)
+            
+            if not self._is_market_open():
+                return {'error': 'Market is closed'}
+            
+            # Initialize Kite connection
+            kite = self._get_kite_connection()
+            if not kite:
+                self.logger.warning("Kite connection failed, falling back to paper trading")
+                return self.execute_paper_trade(signal)
+            
+            # Validate live trading conditions
+            validation_result = self._validate_live_trade_conditions(signal)
+            if 'error' in validation_result:
+                return validation_result
+            
+            # Place live order
+            order_result = self._place_live_order(kite, signal)
+            
+            if 'error' in order_result:
+                self.logger.error(f"Live order failed: {order_result['error']}")
+                return self.execute_paper_trade(signal)
+            
+            # Store live position
+            position_id = self._store_live_position(signal, order_result)
+            
+            self.logger.info(f"Live trade executed: {signal.get('symbol')} @ {order_result.get('price', 0)}")
+            
+            return {
+                'status': 'live_executed',
+                'position_id': position_id,
+                'order_id': order_result.get('order_id'),
+                'execution_price': order_result.get('price'),
+                'execution_type': 'LIVE'
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Live trade execution failed: {e}")
+            return self.execute_paper_trade(signal)
+
+    def _would_execute_live_trade(self, signal: Dict) -> bool:
+        """Check if signal would be executed in live trading"""
+        
+        try:
+            import config
+            
+            if not config.LIVE_TRADING_MODE:
+                return False
+            
+            if not self._is_market_open():
+                return False
+            
+            if signal.get('overall_confidence', 0) < config.LIVE_MIN_CONFIDENCE_THRESHOLD:
+                return False
+            
+            symbol = signal.get('symbol')
+            if symbol not in config.LIVE_TRADING_APPROVED_SYMBOLS:
+                return False
+            
+            live_positions = self._get_live_positions()
+            if len(live_positions) >= config.LIVE_MAX_POSITIONS:
+                return False
+            
+            if any(pos.get('symbol') == symbol for pos in live_positions):
+                return False
+            
+            return True
+            
+        except Exception:
+            return False
+
+    def _is_market_open(self) -> bool:
+        """Check if market is currently open"""
+        
+        try:
+            import config
+            from datetime import datetime
+            import pytz
+            
+            ist = pytz.timezone('Asia/Kolkata')
+            now = datetime.now(ist)
+            
+            # Skip weekends
+            if now.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                return False
+            
+            market_open = now.replace(hour=config.MARKET_OPEN_HOUR, minute=config.MARKET_OPEN_MINUTE, second=0)
+            market_close = now.replace(hour=config.MARKET_CLOSE_HOUR, minute=config.MARKET_CLOSE_MINUTE, second=0)
+            
+            return market_open <= now <= market_close
+            
+        except Exception:
+            return False
+
+    def _place_live_order(self, kite, signal: Dict) -> Dict:
+        """Place live order through Kite API"""
+        
+        try:
+            import config
+            
+            order_params = {
+                'exchange': 'NSE',
+                'tradingsymbol': signal.get('symbol'),
+                'transaction_type': 'BUY',
+                'quantity': signal.get('recommended_shares', 0),
+                'product': 'MIS',  # Intraday
+                'order_type': 'LIMIT',
+                'price': signal.get('entry_price'),
+                'validity': 'DAY',
+                'tag': 'nexus_trading'
+            }
+            
+            order_id = kite.place_order(**order_params)
+            
+            # Wait for order confirmation
+            import time
+            time.sleep(config.LIVE_EXECUTION_DELAY_SECONDS)
+            
+            # Check order status
+            order_status = kite.order_history(order_id)[-1]
+            
+            if order_status['status'] == 'COMPLETE':
+                return {
+                    'order_id': order_id,
+                    'price': float(order_status['average_price']),
+                    'quantity': int(order_status['filled_quantity']),
+                    'status': 'executed'
+                }
+            else:
+                return {'error': f"Order not filled: {order_status['status']}"}
+                
+        except Exception as e:
+            self.logger.error(f"Live order placement failed: {e}")
+            return {'error': str(e)}
+
+    def _validate_live_trade_conditions(self, signal: Dict) -> Dict:
+        """Enhanced validation with approved symbols check"""
+        
+        try:
+            import config
+            
+            # Check confidence threshold
+            if signal.get('overall_confidence', 0) < config.LIVE_MIN_CONFIDENCE_THRESHOLD:
+                return {'error': 'Confidence too low for live trading'}
+            
+            # Check approved symbols
+            symbol = signal.get('symbol')
+            if symbol not in config.LIVE_TRADING_APPROVED_SYMBOLS:
+                return {'error': f'Symbol {symbol} not approved for live trading'}
+            
+            # Check position limits
+            live_positions = self._get_live_positions()
+            open_positions = [p for p in live_positions if p.get('status') == 'OPEN']
+            
+            if len(open_positions) >= config.LIVE_MAX_POSITIONS:
+                return {'error': 'Maximum live positions reached'}
+            
+            # Check symbol duplication
+            if any(pos.get('symbol') == symbol for pos in open_positions):
+                return {'error': f'Already have position in {symbol}'}
+            
+            # Check daily loss limit
+            daily_pnl = sum(p.get('unrealized_pnl', 0) for p in open_positions)
+            if abs(min(0, daily_pnl)) >= config.LIVE_MAX_LOSS_PER_DAY:
+                return {'error': 'Daily loss limit reached'}
+            
+            return {'status': 'validated'}
+            
+        except Exception as e:
+            return {'error': f'Validation failed: {e}'}
+
+    def _store_live_position(self, signal: Dict, order_result: Dict) -> str:
+        """Store live position in database"""
+        
+        try:
+            from datetime import datetime
+            
+            query = """
+                INSERT INTO agent_portfolio_positions 
+                (symbol, signal_id, entry_time, entry_price, quantity, position_value, 
+                 current_stop_loss, target_price, status, execution_type, order_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query, (
+                        signal.get('symbol'),
+                        signal.get('id'),
+                        datetime.now(),
+                        order_result.get('price'),
+                        order_result.get('quantity'),
+                        order_result.get('price', 0) * order_result.get('quantity', 0),
+                        signal.get('stop_loss'),
+                        signal.get('target_price'),
+                        'OPEN',
+                        'LIVE',
+                        order_result.get('order_id')
+                    ))
+                    position_id = cursor.fetchone()[0]
+                    return str(position_id)
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to store live position: {e}")
+            return None
+
+    def _get_live_positions(self) -> list:
+        """Get live positions from database"""
+        
+        try:
+            query = """
+                SELECT * FROM agent_portfolio_positions 
+                WHERE execution_type = 'LIVE' AND status = 'OPEN'
+            """
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    return [dict(zip(columns, row)) for row in rows]
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to get live positions: {e}")
+            return []

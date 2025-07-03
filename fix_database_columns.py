@@ -30,7 +30,7 @@ def fix_missing_columns():
     
     connection_params = {
         'host': os.getenv('DATABASE_HOST', 'localhost'),
-        'port': int(os.getenv('DATABASE_PORT', 5432)),
+        'port': int(os.getenv('DATABASE_PORT', 5435)),
         'database': os.getenv('DATABASE_NAME'),
         'user': os.getenv('DATABASE_USER'),
         'password': os.getenv('DATABASE_PASSWORD')

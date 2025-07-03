@@ -32,7 +32,7 @@ class SchemaCreator:
         self.logger = logging.getLogger(__name__)
         self.connection_params = {
             'host': os.getenv('DATABASE_HOST', 'localhost'),
-            'port': int(os.getenv('DATABASE_PORT', 5432)),
+            'port': int(os.getenv('DATABASE_PORT', 5435)),
             'database': os.getenv('DATABASE_NAME'),
             'user': os.getenv('DATABASE_USER'),
             'password': os.getenv('DATABASE_PASSWORD')
@@ -390,6 +390,152 @@ class SchemaCreator:
         CREATE INDEX idx_backtest_trades_pnl ON agent_backtest_trades(pnl);
         CREATE INDEX idx_backtest_trades_timestamp ON agent_backtest_trades(timestamp);
         """
+    # Add this method to the SchemaCreator class in database/schema_creator.py
+
+    def create_paper_trading_tables(self) -> bool:
+        """Create additional tables for paper trading"""
+        
+        try:
+            # Add executed_at column to existing signals table
+            alter_signals_query = """
+                ALTER TABLE agent_live_signals 
+                ADD COLUMN IF NOT EXISTS executed_at TIMESTAMP WITHOUT TIME ZONE;
+            """
+            
+            # Add paper trading specific columns to portfolio positions
+            alter_positions_query = """
+                ALTER TABLE agent_portfolio_positions 
+                ADD COLUMN IF NOT EXISTS commission_paid DECIMAL(8,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS slippage_amount DECIMAL(8,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS execution_type VARCHAR(20) DEFAULT 'PAPER',
+                ADD COLUMN IF NOT EXISTS max_gain DECIMAL(5,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS max_loss DECIMAL(5,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS holding_period_minutes INTEGER DEFAULT 0;
+            """
+            
+            # Create paper trading performance tracking table
+            performance_table_query = """
+                CREATE TABLE IF NOT EXISTS agent_paper_performance (
+                    id SERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    starting_capital DECIMAL(12,2),
+                    ending_capital DECIMAL(12,2),
+                    daily_pnl DECIMAL(10,2),
+                    daily_return_percent DECIMAL(5,2),
+                    trades_executed INTEGER DEFAULT 0,
+                    winning_trades INTEGER DEFAULT 0,
+                    losing_trades INTEGER DEFAULT 0,
+                    win_rate DECIMAL(5,2) DEFAULT 0,
+                    max_drawdown DECIMAL(5,2) DEFAULT 0,
+                    sharpe_ratio DECIMAL(5,3) DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(date)
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_paper_performance_date ON agent_paper_performance(date);
+            """
+            
+            with psycopg2.connect(**self.connection_params) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(alter_signals_query)
+                    cursor.execute(alter_positions_query)
+                    cursor.execute(performance_table_query)
+                    conn.commit()
+                    
+            self.logger.info("Paper trading tables created successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create paper trading tables: {e}")
+            return False
+    
+    def create_live_trading_tables(self) -> bool:
+        """Create additional tables for live trading"""
+        
+        try:
+            # Add live trading columns to existing signals table
+            alter_signals_query = """
+                ALTER TABLE agent_live_signals 
+                ADD COLUMN IF NOT EXISTS execution_type VARCHAR(20) DEFAULT 'PAPER';
+            """
+            
+            # Add live trading specific columns to portfolio positions
+            alter_positions_query = """
+                ALTER TABLE agent_portfolio_positions 
+                ADD COLUMN IF NOT EXISTS order_id VARCHAR(50),
+                ADD COLUMN IF NOT EXISTS order_status VARCHAR(20) DEFAULT 'PENDING',
+                ADD COLUMN IF NOT EXISTS execution_type VARCHAR(20) DEFAULT 'PAPER',
+                ADD COLUMN IF NOT EXISTS commission_paid DECIMAL(8,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS slippage_amount DECIMAL(8,2) DEFAULT 0;
+            """
+            
+            # Create live trading orders tracking table
+            orders_table_query = """
+                CREATE TABLE IF NOT EXISTS agent_live_orders (
+                    id SERIAL PRIMARY KEY,
+                    order_id VARCHAR(50) UNIQUE NOT NULL,
+                    symbol VARCHAR(20) NOT NULL,
+                    signal_id INTEGER REFERENCES agent_live_signals(id),
+                    order_type VARCHAR(20) NOT NULL,
+                    transaction_type VARCHAR(10) NOT NULL,
+                    quantity INTEGER NOT NULL,
+                    price DECIMAL(10,2),
+                    order_status VARCHAR(20) DEFAULT 'PENDING',
+                    filled_quantity INTEGER DEFAULT 0,
+                    average_price DECIMAL(10,2) DEFAULT 0,
+                    order_timestamp TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                    update_timestamp TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    exchange VARCHAR(10) DEFAULT 'NSE',
+                    product VARCHAR(10) DEFAULT 'MIS',
+                    validity VARCHAR(10) DEFAULT 'DAY',
+                    tag VARCHAR(50) DEFAULT 'nexus_trading',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_live_orders_symbol ON agent_live_orders(symbol);
+                CREATE INDEX IF NOT EXISTS idx_live_orders_status ON agent_live_orders(order_status);
+            """
+            
+            # Create live trading performance tracking table
+            live_performance_table_query = """
+                CREATE TABLE IF NOT EXISTS agent_live_performance (
+                    id SERIAL PRIMARY KEY,
+                    date DATE NOT NULL,
+                    starting_capital DECIMAL(12,2),
+                    ending_capital DECIMAL(12,2),
+                    live_pnl DECIMAL(10,2) DEFAULT 0,
+                    paper_pnl DECIMAL(10,2) DEFAULT 0,
+                    daily_return_percent DECIMAL(5,2),
+                    live_trades_executed INTEGER DEFAULT 0,
+                    paper_trades_executed INTEGER DEFAULT 0,
+                    live_winning_trades INTEGER DEFAULT 0,
+                    live_losing_trades INTEGER DEFAULT 0,
+                    live_win_rate DECIMAL(5,2) DEFAULT 0,
+                    execution_efficiency DECIMAL(5,2) DEFAULT 0,
+                    api_calls_made INTEGER DEFAULT 0,
+                    api_errors INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(date)
+                );
+                
+                CREATE INDEX IF NOT EXISTS idx_live_performance_date ON agent_live_performance(date);
+            """
+            
+            with psycopg2.connect(**self.connection_params) as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(alter_signals_query)
+                    cursor.execute(alter_positions_query)
+                    cursor.execute(orders_table_query)
+                    cursor.execute(live_performance_table_query)
+                    conn.commit()
+                    
+            self.logger.info("Live trading tables created successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create live trading tables: {e}")
+            return False
     
     def verify_essential_tables(self) -> Dict[str, bool]:
         """Verify essential tables exist"""
@@ -580,3 +726,5 @@ class SchemaCreator:
         except Exception as e:
             self.logger.error(f"Failed to clean old data: {e}")
             return False
+    
+    

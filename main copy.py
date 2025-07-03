@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 FILE: main.py  
 LOCATION: / (root directory)
@@ -6,20 +5,17 @@ PURPOSE: Main Entry Point - Primary system controller with all execution modes
 
 DESCRIPTION:
 - Main entry point for the Nexus Trading System
-- Supports multiple execution modes: setup, test, demo, integration, live, paper, signals
+- Supports multiple execution modes: setup, test, demo, integration
 - Handles system initialization, validation, and testing
 - Integrates database, technical analysis, and system health checks
 - Provides command-line interface for system operations
-- **UPDATED**: Now includes technical analysis testing and validation, live trading, paper trading
+- **UPDATED**: Now includes technical analysis testing and validation
 
 EXECUTION MODES:
 - setup: Initialize environment and verify basic setup
 - test: Comprehensive system testing including technical analysis
 - demo: Demonstrate analysis on single symbol with technical indicators
 - integration: Complete system integration test with all components
-- live: Live trading mode with trade mode control
-- paper: Paper trading mode
-- signals: Signal generation only mode
 
 DEPENDENCIES:
 - database/enhanced_database_manager.py (for database operations)
@@ -33,9 +29,18 @@ USAGE:
 - python main.py --mode test
 - python main.py --mode demo --symbol RELIANCE
 - python main.py --mode integration
-- python main.py --mode live
-- python main.py --mode paper
-- python main.py --mode signals
+"""
+
+#!/usr/bin/env python3
+"""
+Nexus Trading System - Main Entry Point
+Day 1 Implementation - Simplified and Robust
+
+Usage:
+    python main.py --mode setup
+    python main.py --mode test  
+    python main.py --mode demo --symbol RELIANCE
+    python main.py --mode integration
 """
 
 import argparse
@@ -44,6 +49,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 import traceback
+
 
 try:
     from advanced_analysis_integration import AdvancedAnalysis
@@ -64,7 +70,7 @@ except ImportError:
     sys.exit(1)
 
 class NexusTradingSystem:
-    """Main Nexus Trading System Controller - Complete Implementation"""
+    """Main Nexus Trading System Controller - Day 1 Simplified"""
     
     def __init__(self):
         self.setup_basic_logging()
@@ -92,43 +98,6 @@ class NexusTradingSystem:
         )
         
         self.logger = logging.getLogger('nexus_trading.main')
-    
-    def run(self, mode: str, symbol: str = None):
-        """Main execution method"""
-        
-        self.logger.info("=" * 50)
-        self.logger.info("NEXUS TRADING SYSTEM STARTING")
-        self.logger.info(f"Mode: {mode}")
-        if symbol:
-            self.logger.info(f"Symbol: {symbol}")
-        self.logger.info("=" * 50)
-        
-        try:
-            if mode == 'setup':
-                return self._setup_mode()
-            elif mode == 'test':
-                return self._test_mode()
-            elif mode == 'demo':
-                return self._demo_mode(symbol)
-            elif mode == 'integration':
-                return self._integration_mode()
-            elif mode == 'live':
-                return self._live_trading_mode()
-            elif mode == 'paper':
-                return self._paper_trading_mode()
-            elif mode == 'signals':
-                return self._signals_mode()
-            else:
-                self.logger.error(f"Unknown mode: {mode}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Critical error in {mode} mode: {e}")
-            self.logger.error(traceback.format_exc())
-            return False
-        finally:
-            self.logger.info("NEXUS TRADING SYSTEM STOPPING")
-            self.logger.info("=" * 50)
     
     def _live_trading_mode(self) -> bool:
         """Live trading mode with trade mode control"""
@@ -192,69 +161,37 @@ class NexusTradingSystem:
             self.logger.error(f"Live trading mode failed: {e}")
             print("Falling back to paper trading")
             return self._paper_trading_mode()
-    
-    def _paper_trading_mode(self) -> bool:
-        """Paper trading mode - Execute paper trades"""
+        
+    def run(self, mode: str, symbol: str = None):
+        """Main execution method"""
+        
+        self.logger.info("=" * 50)
+        self.logger.info("NEXUS TRADING SYSTEM STARTING")
+        self.logger.info(f"Mode: {mode}")
+        if symbol:
+            self.logger.info(f"Symbol: {symbol}")
+        self.logger.info("=" * 50)
         
         try:
-            import config
-            
-            if not config.PAPER_TRADING_MODE:
-                print("Paper trading mode is disabled in config")
-                return False
-            
-            print("=" * 60)
-            print("PAPER TRADING MODE")
-            print("=" * 60)
-            
-            # Initialize paper trading components
-            from paper_trading_manager import PaperTradingManager
-            paper_manager = PaperTradingManager()
-            
-            # Validate setup
-            if not paper_manager.validate_paper_trading_setup():
-                print("Paper trading setup validation failed")
-                return False
-            
-            # Run paper trading session
-            result = paper_manager.run_paper_trading_session()
-            
-            if 'error' in result:
-                print(f"Paper trading session failed: {result['error']}")
-                return False
-            
-            # Generate report
-            paper_manager.generate_daily_report()
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Paper trading mode failed: {e}")
-            return False
-    
-    def _signals_mode(self) -> bool:
-        """Signal generation only mode"""
-        
-        try:
-            print("=" * 60)
-            print("SIGNAL GENERATION MODE")
-            print("=" * 60)
-            
-            from live_trading_manager import LiveTradingManager
-            manager = LiveTradingManager()
-            result = manager.show_signals_only()
-            
-            if 'error' not in result:
-                print("\n✅ Signal generation completed")
-                print("Use --mode live to execute trades (requires TRADE_MODE=yes)")
-                return True
+            if mode == 'setup':
+                return self._setup_mode()
+            elif mode == 'test':
+                return self._test_mode()
+            elif mode == 'demo':
+                return self._demo_mode(symbol)
+            elif mode == 'integration':
+                return self._integration_mode()
             else:
-                print(f"\n❌ Signal generation failed: {result['error']}")
+                self.logger.error(f"Unknown mode: {mode}")
                 return False
                 
         except Exception as e:
-            self.logger.error(f"Signals mode failed: {e}")
+            self.logger.error(f"Critical error in {mode} mode: {e}")
+            self.logger.error(traceback.format_exc())
             return False
+        finally:
+            self.logger.info("NEXUS TRADING SYSTEM STOPPING")
+            self.logger.info("=" * 50)
     
     def _setup_mode(self) -> bool:
         """Initialize environment and verify basic setup"""
@@ -314,6 +251,109 @@ class NexusTradingSystem:
             self.logger.error(f"Setup failed: {e}")
             return False
     
+    def _test_sentiment_analysis(self) -> bool:
+        """Test sentiment analysis capabilities - Day 3A"""
+        
+        try:
+            from agents.news_sentiment_agent import NewsSentimentAgent
+            
+            # Initialize sentiment agent
+            sentiment_agent = NewsSentimentAgent(self.db_manager)
+            
+            # Test market sentiment
+            market_sentiment = sentiment_agent.get_market_sentiment()
+            
+            if market_sentiment.get('status') == 'unavailable':
+                self.logger.warning("Sentiment analysis unavailable (API key or dependencies missing)")
+                return True  # Don't fail test if sentiment is not configured
+            
+            self.logger.info(f"Market sentiment: {market_sentiment.get('market_sentiment', 0.5):.3f}")
+            
+            # Test symbol sentiment
+            test_symbols = self.db_manager.get_testing_symbols()[:2]
+            
+            if test_symbols:
+                for symbol in test_symbols:
+                    sentiment_result = sentiment_agent.analyze_symbol_sentiment(symbol, hours_back=48)
+                    status = sentiment_result.get('status', 'unknown')
+                    score = sentiment_result.get('sentiment_score', 0.5)
+                    
+                    self.logger.info(f"Sentiment for {symbol}: {score:.3f} ({status})")
+            
+            return True
+            
+        except ImportError:
+            self.logger.warning("Sentiment analysis components not available")
+            return True  # Don't fail if not implemented
+        except Exception as e:
+            self.logger.error(f"Sentiment analysis test failed: {e}")
+            return False
+    
+    def _test_enhanced_sentiment(self) -> bool:
+        """Test enhanced sentiment analysis - Day 3B"""
+        
+        try:
+            from agents.news_sentiment_agent import NewsSentimentAgent
+            from reports.sentiment_dashboard import SentimentDashboard
+            
+            # Initialize components
+            sentiment_agent = NewsSentimentAgent(self.db_manager)
+            dashboard = SentimentDashboard(self.db_manager)
+            
+            # Test enhanced sentiment analysis
+            test_symbols = self.db_manager.get_testing_symbols()[:2]
+            
+            if not test_symbols:
+                self.logger.warning("No test symbols for enhanced sentiment")
+                return True
+            
+            for symbol in test_symbols:
+                # Test enhanced analysis
+                enhanced_result = sentiment_agent.analyze_symbol_sentiment(symbol, hours_back=48)
+                status = enhanced_result.get('status', 'unknown')
+                
+                if status == 'unavailable':
+                    self.logger.info("Enhanced sentiment unavailable (normal without API key)")
+                    return True
+                
+                self.logger.info(f"Enhanced sentiment {symbol}: {enhanced_result.get('sentiment_score', 0.5):.3f}")
+                
+                # Test sentiment trend
+                trend_data = dashboard.get_symbol_sentiment_trend(symbol)
+                self.logger.info(f"Trend {symbol}: {trend_data.get('trend_direction', 'unknown')}")
+            
+            # Test market overview
+            report = dashboard.generate_sentiment_report(test_symbols)
+            if 'error' not in report:
+                market_avg = report.get('market_overview', {}).get('average_sentiment', 0.5)
+                self.logger.info(f"Market sentiment: {market_avg:.3f}")
+            
+            return True
+            
+        except ImportError:
+            self.logger.warning("Enhanced sentiment components not available")
+            return True
+        except Exception as e:
+            self.logger.error(f"Enhanced sentiment test failed: {e}")
+            return False
+
+    def _create_sentiment_tables(self) -> bool:
+        """Create sentiment tables for Day 3B"""
+        
+        try:
+            # Create sentiment tables
+            if self.db_manager.create_sentiment_tables():
+                self.logger.info("Sentiment tables created successfully")
+                return True
+            else:
+                self.logger.warning("Failed to create sentiment tables")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Sentiment table creation failed: {e}")
+            return False
+
+    
     def _test_mode(self) -> bool:
         """Comprehensive system testing and validation"""
         
@@ -324,11 +364,9 @@ class NexusTradingSystem:
             'database_connection': False,
             'existing_tables': False,
             'agent_tables': False,
-            'sentiment_tables': False,
             'data_pipeline': False,
             'technical_analysis': False,
-            'sentiment_analysis': False,
-            'enhanced_sentiment': False
+            'sentiment_analysis': False
         }
         
         try:
@@ -349,7 +387,6 @@ class NexusTradingSystem:
                 self.logger.info("Test 4: Agent tables...")
                 test_results['agent_tables'] = self._test_agent_tables()
                 
-                # Test 5: Sentiment tables
                 self.logger.info("Test 5: Sentiment tables...")
                 test_results['sentiment_tables'] = self._create_sentiment_tables()
             
@@ -365,7 +402,6 @@ class NexusTradingSystem:
                 self.logger.info("Test 8: Sentiment analysis...")
                 test_results['sentiment_analysis'] = self._test_sentiment_analysis()
                 
-                # Test 9: Enhanced sentiment
                 self.logger.info("Test 9: Enhanced sentiment...")
                 test_results['enhanced_sentiment'] = self._test_enhanced_sentiment()
                 
@@ -480,108 +516,6 @@ class NexusTradingSystem:
         self._report_integration_results(results)
         
         return all(results.values())
-    
-    def _test_sentiment_analysis(self) -> bool:
-        """Test sentiment analysis capabilities - Day 3A"""
-        
-        try:
-            from agents.news_sentiment_agent import NewsSentimentAgent
-            
-            # Initialize sentiment agent
-            sentiment_agent = NewsSentimentAgent(self.db_manager)
-            
-            # Test market sentiment
-            market_sentiment = sentiment_agent.get_market_sentiment()
-            
-            if market_sentiment.get('status') == 'unavailable':
-                self.logger.warning("Sentiment analysis unavailable (API key or dependencies missing)")
-                return True  # Don't fail test if sentiment is not configured
-            
-            self.logger.info(f"Market sentiment: {market_sentiment.get('market_sentiment', 0.5):.3f}")
-            
-            # Test symbol sentiment
-            test_symbols = self.db_manager.get_testing_symbols()[:2]
-            
-            if test_symbols:
-                for symbol in test_symbols:
-                    sentiment_result = sentiment_agent.analyze_symbol_sentiment(symbol, hours_back=48)
-                    status = sentiment_result.get('status', 'unknown')
-                    score = sentiment_result.get('sentiment_score', 0.5)
-                    
-                    self.logger.info(f"Sentiment for {symbol}: {score:.3f} ({status})")
-            
-            return True
-            
-        except ImportError:
-            self.logger.warning("Sentiment analysis components not available")
-            return True  # Don't fail if not implemented
-        except Exception as e:
-            self.logger.error(f"Sentiment analysis test failed: {e}")
-            return False
-    
-    def _test_enhanced_sentiment(self) -> bool:
-        """Test enhanced sentiment analysis - Day 3B"""
-        
-        try:
-            from agents.news_sentiment_agent import NewsSentimentAgent
-            from reports.sentiment_dashboard import SentimentDashboard
-            
-            # Initialize components
-            sentiment_agent = NewsSentimentAgent(self.db_manager)
-            dashboard = SentimentDashboard(self.db_manager)
-            
-            # Test enhanced sentiment analysis
-            test_symbols = self.db_manager.get_testing_symbols()[:2]
-            
-            if not test_symbols:
-                self.logger.warning("No test symbols for enhanced sentiment")
-                return True
-            
-            for symbol in test_symbols:
-                # Test enhanced analysis
-                enhanced_result = sentiment_agent.analyze_symbol_sentiment(symbol, hours_back=48)
-                status = enhanced_result.get('status', 'unknown')
-                
-                if status == 'unavailable':
-                    self.logger.info("Enhanced sentiment unavailable (normal without API key)")
-                    return True
-                
-                self.logger.info(f"Enhanced sentiment {symbol}: {enhanced_result.get('sentiment_score', 0.5):.3f}")
-                
-                # Test sentiment trend
-                trend_data = dashboard.get_symbol_sentiment_trend(symbol)
-                self.logger.info(f"Trend {symbol}: {trend_data.get('trend_direction', 'unknown')}")
-            
-            # Test market overview
-            report = dashboard.generate_sentiment_report(test_symbols)
-            if 'error' not in report:
-                market_avg = report.get('market_overview', {}).get('average_sentiment', 0.5)
-                self.logger.info(f"Market sentiment: {market_avg:.3f}")
-            
-            return True
-            
-        except ImportError:
-            self.logger.warning("Enhanced sentiment components not available")
-            return True
-        except Exception as e:
-            self.logger.error(f"Enhanced sentiment test failed: {e}")
-            return False
-
-    def _create_sentiment_tables(self) -> bool:
-        """Create sentiment tables for Day 3B"""
-        
-        try:
-            # Create sentiment tables
-            if self.db_manager.create_sentiment_tables():
-                self.logger.info("Sentiment tables created successfully")
-                return True
-            else:
-                self.logger.warning("Failed to create sentiment tables")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Sentiment table creation failed: {e}")
-            return False
     
     def _test_environment(self) -> bool:
         """Test environment configuration"""
@@ -707,6 +641,7 @@ class NexusTradingSystem:
             self.logger.error(f"Agent tables test failed: {e}")
             return False
     
+
     def _test_technical_analysis(self) -> bool:
         """Test technical analysis capabilities - FIXED"""
         
@@ -775,30 +710,11 @@ class NexusTradingSystem:
         except Exception as e:
             self.logger.error(f"Technical analysis test failed: {e}")
             return False
-    
     def _display_symbol_info(self, symbol: str, fundamental_data: dict):
         """Display symbol information"""
         
         print("\n" + "=" * 50)
         print(f"SYMBOL ANALYSIS: {symbol}")
-        print("=" * 50)
-        
-        key_fields = [
-            ('Stock Name', 'stock_name'),
-            ('Category', 'category'),
-            ('Market Cap Type', 'market_cap_type'),
-            ('Sector', 'sector'),
-            ('Volatility Category', 'volatility_category'),
-            ('Current Price', 'current_price'),
-            ('PE Ratio', 'pe_ratio'),
-            ('ROE Ratio', 'roe_ratio'),
-            ('Market Cap (Cr)', 'market_cap')
-        ]
-        
-        for display_name, field_name in key_fields:
-            value = fundamental_data.get(field_name, 'N/A')
-            print(f"{display_name:20}: {value}")
-        
         print("=" * 50)
     
     def _display_technical_analysis(self, symbol: str, analysis: dict):
@@ -852,6 +768,24 @@ class NexusTradingSystem:
         if reasoning:
             print(f"\nReasoning:")
             print(f"  {reasoning}")
+        
+        print("=" * 50)
+        
+        # key_fields = [
+        #     ('Stock Name', 'stock_name'),
+        #     ('Category', 'category'),
+        #     ('Market Cap Type', 'market_cap_type'),
+        #     ('Sector', 'sector'),
+        #     ('Volatility Category', 'volatility_category'),
+        #     ('Current Price', 'current_price'),
+        #     ('PE Ratio', 'pe_ratio'),
+        #     ('ROE Ratio', 'roe_ratio'),
+        #     ('Market Cap (Cr)', 'market_cap')
+        # ]
+        
+        # for display_name, field_name in key_fields:
+        #     value = fundamental_data.get(field_name, 'N/A')
+        #     print(f"{display_name:20}: {value}")
         
         print("=" * 50)
     
@@ -923,41 +857,104 @@ class NexusTradingSystem:
             print("You can now proceed with Day 2 development")
         else:
             print("\nFAILED: Please fix issues before proceeding")
+    
+    def _paper_trading_mode(self) -> bool:
+        """Paper trading mode - Execute paper trades"""
+        
+        try:
+            import config
+            
+            if not config.PAPER_TRADING_MODE:
+                print("Paper trading mode is disabled in config")
+                return False
+            
+            print("=" * 60)
+            print("PAPER TRADING MODE")
+            print("=" * 60)
+            
+            # Initialize paper trading components
+            from paper_trading_manager import PaperTradingManager
+            paper_manager = PaperTradingManager()
+            
+            # Validate setup
+            if not paper_manager.validate_paper_trading_setup():
+                print("Paper trading setup validation failed")
+                return False
+            
+            # Run paper trading session
+            result = paper_manager.run_paper_trading_session()
+            
+            if 'error' in result:
+                print(f"Paper trading session failed: {result['error']}")
+                return False
+            
+            # Generate report
+            paper_manager.generate_daily_report()
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Paper trading mode failed: {e}")
+            return False
 
 def main():
-    """Main entry point - FIXED VERSION"""
+    """Main entry point"""
     
-    parser = argparse.ArgumentParser(description='Nexus Trading System - Complete Implementation')
-    
-    # SINGLE, UNIFIED argument parser - no conflicts
+    parser = argparse.ArgumentParser(description='Nexus Trading System - Day 1')
+    parser.add_argument('--mode', required=True, 
+                       choices=['setup', 'test', 'demo', 'integration'],
+                       help='Execution mode')
+    parser.add_argument('--symbol', 
+                       help='Symbol for demo mode (default: RELIANCE)')
+    parser.add_argument('--mode', 
+                       choices=['setup', 'test', 'demo', 'integration', 'paper'], 
+                       default='test',
+                       help='Execution mode')
     parser.add_argument('--mode', 
                        choices=['setup', 'test', 'demo', 'integration', 'paper', 'live', 'signals'], 
                        default='test',
                        help='Execution mode')
-    parser.add_argument('--symbol', 
-                       help='Symbol for demo mode (default: RELIANCE)')
+    if args.mode == 'paper':
+            success = system._paper_trading_mode()
+            if success:
+                print("\n✅ Paper trading session completed successfully")
+            else:
+                print("\n❌ Paper trading session failed")
+                sys.exit(1)
+    elif args.mode == 'live':
+        success = system._live_trading_mode()
+        if success:
+            print("\n✅ Live trading session completed successfully")
+        else:
+            print("\n❌ Live trading session failed")
+            sys.exit(1)
+            
+    elif args.mode == 'signals':
+        # Signal generation only mode
+        print("=" * 60)
+        print("SIGNAL GENERATION MODE")
+        print("=" * 60)
+        
+        from live_trading_manager import LiveTradingManager
+        manager = LiveTradingManager()
+        result = manager.show_signals_only()
+        
+        if 'error' not in result:
+            print("\n✅ Signal generation completed")
+            print("Use --mode live to execute trades (requires TRADE_MODE=yes)")
+        else:
+            print("\n❌ Signal generation failed")
+            sys.exit(1)
     
     args = parser.parse_args()
     
     # Initialize system
     system = NexusTradingSystem()
     
-    # Run in specified mode with complete logic
+    # Run in specified mode
     success = system.run(args.mode, args.symbol)
     
     # Exit with appropriate code
-    if success:
-        if args.mode == 'paper':
-            print("\n✅ Paper trading session completed successfully")
-        elif args.mode == 'live':
-            print("\n✅ Live trading session completed successfully")
-        elif args.mode == 'signals':
-            print("\n✅ Signal generation completed successfully")
-        else:
-            print(f"\n✅ {args.mode.upper()} mode completed successfully")
-    else:
-        print(f"\n❌ {args.mode.upper()} mode failed")
-    
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

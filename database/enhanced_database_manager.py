@@ -26,7 +26,7 @@ class EnhancedDatabaseManager:
             self.connection_pool = SimpleConnectionPool(
                 1, 5,  # Start simple: min=1, max=5 connections
                 host=os.getenv('DATABASE_HOST', 'localhost'),
-                port=int(os.getenv('DATABASE_PORT', 5432)),
+                port=int(os.getenv('DATABASE_PORT', 5435)),
                 database=os.getenv('DATABASE_NAME'),
                 user=os.getenv('DATABASE_USER'),
                 password=os.getenv('DATABASE_PASSWORD')
