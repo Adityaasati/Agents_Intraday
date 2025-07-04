@@ -19,6 +19,25 @@ from .connection_config import get_connection_params
 class EnhancedDatabaseManager:
     """Simplified Database Manager for Day 1 - Nexus Trading System"""
     
+    def __del__(self):
+        """Cleanup connections on object destruction"""
+        try:
+            if hasattr(self, 'connection_pool') and self.connection_pool:
+                self.connection_pool.closeall()
+        except:
+            pass
+    
+
+    def close_connections(self):
+        """Manually close all connections"""
+        try:
+            if hasattr(self, 'connection_pool') and self.connection_pool:
+                self.connection_pool.closeall()
+                self.logger.info("All database connections closed")
+        except Exception as e:
+            self.logger.error(f"Error closing connections: {e}")
+    
+    
     # In __init__ method:
     def __init__(self):
         self.connection_params = {
@@ -46,6 +65,7 @@ class EnhancedDatabaseManager:
             'avg_query_time': 0.0,
             'last_cleanup': datetime.now()
         }
+    
         
     def _initialize_connection_pool(self):
         """Initialize PostgreSQL connection pool"""
@@ -418,31 +438,35 @@ class EnhancedDatabaseManager:
         
         return health_data
     
-    def create_quarterly_table(self, year: int, quarter: int) -> bool:
-        """Create new quarterly historical data table"""
+
+    def create_quarterly_historical_table(self, year: int, quarter: int):
+        """Create quarterly historical data table"""
         table_name = f"historical_data_3m_{year}_q{quarter}"
         
-        create_query = f"""
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id SERIAL PRIMARY KEY,
-            symbol VARCHAR(20) NOT NULL,
-            date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-            open DECIMAL(10,2) NOT NULL,
-            high DECIMAL(10,2) NOT NULL,
-            low DECIMAL(10,2) NOT NULL,
-            close DECIMAL(10,2) NOT NULL,
-            volume BIGINT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(symbol, date)
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_{table_name}_symbol_date ON {table_name}(symbol, date);
-        """
-        
         try:
-            self.execute_query(create_query, fetch=False)
+            with self.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(f"""
+                        CREATE TABLE IF NOT EXISTS {table_name} (
+                            id SERIAL PRIMARY KEY,
+                            symbol VARCHAR(20) NOT NULL,
+                            date TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                            open DECIMAL(10,2) NOT NULL,
+                            high DECIMAL(10,2) NOT NULL,
+                            low DECIMAL(10,2) NOT NULL,
+                            close DECIMAL(10,2) NOT NULL,
+                            volume BIGINT NOT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            UNIQUE(symbol, date)
+                        );
+                        
+                        CREATE INDEX IF NOT EXISTS idx_{table_name}_symbol_date 
+                        ON {table_name}(symbol, date);
+                    """)
+                    
             self.logger.info(f"Created/verified table: {table_name}")
             return True
+            
         except Exception as e:
             self.logger.error(f"Failed to create table {table_name}: {e}")
             return False
@@ -1625,3 +1649,30 @@ class EnhancedDatabaseManager:
         except Exception as e:
             self.logger.error(f"Error getting fundamental data for {symbol}: {e}")
             return {}
+        
+    def return_connection(self, conn):
+        """Return connection to pool or close it"""
+        try:
+            if hasattr(self, 'connection_pool') and self.connection_pool:
+                self.connection_pool.putconn(conn)
+            else:
+                conn.close()
+        except Exception as e:
+            self.logger.warning(f"Error returning connection: {e}")
+            try:
+                conn.close()
+            except:
+                pass
+
+    def get_connection(self):
+        """Get database connection from pool or create new one"""
+        try:
+            if hasattr(self, 'connection_pool') and self.connection_pool:
+                return self.connection_pool.getconn()
+            else:
+                # Fallback to direct connection
+                import psycopg2
+                return psycopg2.connect(**self.connection_params)
+        except Exception as e:
+            self.logger.error(f"Failed to get connection: {e}")
+            raise

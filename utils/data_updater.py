@@ -37,7 +37,7 @@ class SimpleDataUpdater:
         now = datetime.now(self.ist)
         quarter = ((now.month - 1) // 3) + 1
         
-        return self.db_manager.create_quarterly_table(now.year, quarter)
+        return self.db_manager.create_quarterly_historical_table(now.year, quarter)
     
     def validate_ohlcv_data(self, ohlcv_data: Dict) -> bool:
         """Validate OHLCV data structure and values"""

@@ -57,12 +57,10 @@ VOLUME_SPIKE_MULTIPLIER = 2.0  # Volume considered spike if >2x average
 
 # Stop Loss Configuration
 STOP_LOSS_PERCENT = 1.5        # Base stop loss percentage
-
-# ATR Stop Loss Multipliers by Volatility Category - FIXED FROM FLOAT TO DICT
 ATR_STOP_MULTIPLIER = {
-    'Low': float(os.getenv('ATR_STOP_MULTIPLIER_LOW', '1.5')),      # Conservative for low volatility
-    'Medium': float(os.getenv('ATR_STOP_MULTIPLIER_MEDIUM', '2.0')), # Standard multiplier
-    'High': float(os.getenv('ATR_STOP_MULTIPLIER_HIGH', '2.5'))      # Wider stops for high volatility
+    'Low': 1.5,     # Low volatility: 1.5x ATR
+    'Medium': 2.0,  # Medium volatility: 2.0x ATR
+    'High': 2.5     # High volatility: 2.5x ATR
 }
 
 # Risk-Reward Configuration
@@ -73,6 +71,7 @@ STANDARD_RISK_REWARD_RATIO = 2.5
 MAX_SECTOR_ALLOCATION = 30.0   # Maximum 30% allocation per sector
 MAX_CORRELATION = 0.7          # Maximum correlation between positions
 MIN_DIVERSIFICATION_SECTORS = 3  # Minimum sectors for diversification
+# Add these variables to the existing config.py file (replace the previous live trading section)
 
 # ==========================================
 # LIVE TRADING CONFIGURATION
@@ -137,83 +136,67 @@ LIVE_TRADING_APPROVED_SYMBOLS = [
     'RELIANCE', 'TCS', 'INFY', 'HDFC', 'ITC', 
     'HDFCBANK', 'ICICIBANK', 'SBIN', 'LT', 'WIPRO'
 ]
-
 # ==========================================
-# HISTORICAL DATA CONFIGURATION
+# SIGNAL GENERATION PARAMETERS
 # ==========================================
-
-# Historical Data Download Settings
-DOWNLOAD_FREQUENCY = os.getenv('DOWNLOAD_FREQUENCY', 'once')  # once/5min/15min/60min
-HISTORICAL_DATA_INTERVAL = os.getenv('HISTORICAL_DATA_INTERVAL', '5minute')  # 5minute/15minute/60minute/180minute  
-DOWNLOAD_START_DATE = os.getenv('DOWNLOAD_START_DATE', '2020-01-01')  # yyyy-mm-dd
-DOWNLOAD_END_DATE = os.getenv('DOWNLOAD_END_DATE', 'today')  # today or yyyy-mm-dd
-
-# Market Hours Configuration  
-MARKET_START_TIME = os.getenv('MARKET_START_TIME', '09:15')  # Market opening time
-MARKET_END_TIME = os.getenv('MARKET_END_TIME', '15:30')      # Market closing time
-EXPECTED_RECORDS_5MIN = int(os.getenv('EXPECTED_RECORDS_5MIN', '75'))   # Expected 5min intervals per day
-
 # ==========================================
-# PERFORMANCE OPTIMIZATION SETTINGS
+# ADD THESE LINES TO END OF config.py
 # ==========================================
 
-# Database Connection Pool Settings
+# Performance Optimization Settings (Day 7A)
 DB_CONNECTION_POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '10'))
 DB_CONNECTION_POOL_MAX = int(os.getenv('DB_POOL_MAX', '20'))
 DB_CONNECTION_TIMEOUT = int(os.getenv('DB_TIMEOUT', '30'))
 DB_QUERY_TIMEOUT = int(os.getenv('DB_QUERY_TIMEOUT', '60'))
 
-# Processing Settings
 MAX_CONCURRENT_SYMBOLS = int(os.getenv('MAX_CONCURRENT_SYMBOLS', '10'))
 BATCH_SIZE_SYMBOLS = int(os.getenv('BATCH_SIZE', '25'))
 MAX_PARALLEL_WORKERS = int(os.getenv('MAX_WORKERS', '4'))
 PROCESSING_TIMEOUT_MINUTES = int(os.getenv('PROCESSING_TIMEOUT', '15'))
 
-# Memory Management
 MAX_MEMORY_USAGE_MB = int(os.getenv('MAX_MEMORY_MB', '1024'))
 CACHE_SIZE_INDICATORS = int(os.getenv('CACHE_SIZE', '1000'))
 CLEANUP_INTERVAL_MINUTES = int(os.getenv('CLEANUP_INTERVAL', '30'))
 
-# Performance Targets
 TARGET_SYMBOLS_PER_MINUTE = int(os.getenv('TARGET_SPEED', '25'))
 MAX_PROCESSING_TIME_PER_SYMBOL = float(os.getenv('MAX_TIME_PER_SYMBOL', '2.0'))
 PERFORMANCE_ALERT_THRESHOLD = float(os.getenv('PERF_ALERT_THRESHOLD', '1.5'))
 
-# Caching Settings
 ENABLE_INDICATOR_CACHE = os.getenv('ENABLE_CACHE', 'true').lower() == 'true'
 CACHE_EXPIRY_MINUTES = int(os.getenv('CACHE_EXPIRY', '15'))
 ENABLE_QUERY_CACHE = os.getenv('ENABLE_QUERY_CACHE', 'true').lower() == 'true'
 
-# Monitoring Settings
 ENABLE_PERFORMANCE_MONITORING = os.getenv('ENABLE_MONITORING', 'true').lower() == 'true'
 MONITOR_INTERVAL_SECONDS = int(os.getenv('MONITOR_INTERVAL', '30'))
 LOG_PERFORMANCE_DETAILS = os.getenv('LOG_PERFORMANCE', 'false').lower() == 'true'
 
-# Query Optimization
 ENABLE_QUERY_OPTIMIZATION = os.getenv('ENABLE_QUERY_OPT', 'true').lower() == 'true'
 USE_PREPARED_STATEMENTS = os.getenv('USE_PREPARED_STMT', 'true').lower() == 'true'
 ENABLE_BULK_OPERATIONS = os.getenv('ENABLE_BULK_OPS', 'true').lower() == 'true'
 
-# ==========================================
-# DASHBOARD CONFIGURATION
-# ==========================================
+# Performance Helper Functions
+def get_optimal_batch_size(total_symbols: int) -> int:
+    """Calculate optimal batch size based on total symbols"""
+    if total_symbols <= 50:
+        return min(BATCH_SIZE_SYMBOLS, total_symbols)
+    elif total_symbols <= 200:
+        return min(50, total_symbols // 4)
+    else:
+        return min(100, total_symbols // 8)
 
-# Dashboard Settings - ADDED MISSING CONFIG
-ENABLE_DASHBOARD = os.getenv('ENABLE_DASHBOARD', 'true').lower() == 'true'
-DASHBOARD_HOST = os.getenv('DASHBOARD_HOST', '127.0.0.1')
-DASHBOARD_PORT = int(os.getenv('DASHBOARD_PORT', '8080'))
-DASHBOARD_AUTO_REFRESH = int(os.getenv('DASHBOARD_AUTO_REFRESH', '30'))  # seconds
+def get_worker_count(batch_size: int) -> int:
+    """Calculate optimal worker count for batch size"""
+    return min(MAX_PARALLEL_WORKERS, max(1, batch_size // 10))
 
-# Auto Reports Configuration - ADDED MISSING CONFIG
-ENABLE_AUTO_REPORTS = os.getenv('ENABLE_AUTO_REPORTS', 'true').lower() == 'true'
-
-# Log Retention - ADDED MISSING CONFIG
-LOG_RETENTION_DAYS = int(os.getenv('LOG_RETENTION_DAYS', '30'))
-
-# ==========================================
-# SIGNAL GENERATION PARAMETERS
-# ==========================================
-
+def validate_performance_config() -> dict:
+    """Validate performance configuration"""
+    return {
+        'pool_size': DB_CONNECTION_POOL_SIZE,
+        'batch_size': BATCH_SIZE_SYMBOLS,
+        'workers': MAX_PARALLEL_WORKERS,
+        'cache_enabled': ENABLE_INDICATOR_CACHE,
+        'monitoring_enabled': ENABLE_PERFORMANCE_MONITORING
+    }
 # Confidence Thresholds
 MIN_CONFIDENCE_THRESHOLD = 0.60    # Minimum 60% confidence for signal generation
 HIGH_CONFIDENCE_THRESHOLD = 0.70   # High confidence threshold
@@ -258,6 +241,14 @@ MARKET_CAP_MULTIPLIER = {
 # Your Existing Table Names
 STOCKS_CATEGORIES_TABLE = 'stocks_categories_table'
 HISTORICAL_DATA_PREFIX = 'historical_data_3m_'
+
+# Market Hours (IST) - Simplified
+MARKET_START_TIME = "09:15"
+MARKET_END_TIME = "15:30"
+
+# ==========================================
+# SYMBOL SELECTION CRITERIA
+# ==========================================
 
 # News Sentiment Configuration
 MAX_NEWS_ARTICLES_PER_SYMBOL = 8        # Articles to analyze per symbol
@@ -307,6 +298,9 @@ LOG_LEVELS = {
     'agents': 'INFO',
     'system': 'INFO'
 }
+
+# Add these configuration parameters to existing config.py file
+# Insert at the end of the file with the portfolio risk management settings
 
 # =============================================================================
 # PORTFOLIO RISK MANAGEMENT SETTINGS
@@ -396,6 +390,181 @@ ENHANCED_FEATURES_CONFIG = {
 }
 
 # =============================================================================
+# VALIDATION FUNCTIONS FOR PORTFOLIO RISK SETTINGS
+# =============================================================================
+
+def validate_portfolio_risk_config() -> bool:
+    """Validate portfolio risk configuration parameters"""
+    
+    try:
+        # Check percentage values are within valid ranges
+        percentage_configs = [
+            ('MAX_SECTOR_ALLOCATION', MAX_SECTOR_ALLOCATION, 1, 100),
+            ('MAX_POSITION_SIZE_PERCENT', MAX_POSITION_SIZE_PERCENT, 1, 50),
+            ('MAX_PORTFOLIO_RISK_PERCENT', MAX_PORTFOLIO_RISK_PERCENT, 5, 50),
+            ('MIN_CASH_BUFFER_PERCENT', MIN_CASH_BUFFER_PERCENT, 5, 30),
+            ('OPTIMAL_CASH_BUFFER_PERCENT', OPTIMAL_CASH_BUFFER_PERCENT, 10, 40)
+        ]
+        
+        for name, value, min_val, max_val in percentage_configs:
+            if not (min_val <= value <= max_val):
+                print(f"Invalid {name}: {value}% (should be {min_val}-{max_val}%)")
+                return False
+        
+        # Check correlation threshold
+        if not (0.1 <= MAX_CORRELATION_THRESHOLD <= 1.0):
+            print(f"Invalid MAX_CORRELATION_THRESHOLD: {MAX_CORRELATION_THRESHOLD}")
+            return False
+        
+        # Check regime multipliers
+        for regime, multiplier in REGIME_POSITION_MULTIPLIERS.items():
+            if not (0.1 <= multiplier <= 2.0):
+                print(f"Invalid regime multiplier for {regime}: {multiplier}")
+                return False
+        
+        # Check consistency
+        if MIN_CASH_BUFFER_PERCENT >= OPTIMAL_CASH_BUFFER_PERCENT:
+            print("MIN_CASH_BUFFER should be less than OPTIMAL_CASH_BUFFER")
+            return False
+        
+        if MAX_POSITION_SIZE_PERCENT * MIN_DIVERSIFICATION_SECTORS > 80:
+            print("Position size and diversification settings may be incompatible")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        print(f"Portfolio risk config validation failed: {e}")
+        return False
+
+def get_portfolio_risk_summary() -> dict:
+    """Get summary of portfolio risk configuration"""
+    
+    return {
+        'concentration_limits': {
+            'max_sector_percent': MAX_SECTOR_ALLOCATION,
+            'max_position_percent': MAX_POSITION_SIZE_PERCENT,
+            'min_sectors': MIN_DIVERSIFICATION_SECTORS
+        },
+        'risk_limits': {
+            'max_portfolio_risk': MAX_PORTFOLIO_RISK_PERCENT,
+            'max_correlation': MAX_CORRELATION_THRESHOLD,
+            'target_beta': PORTFOLIO_BETA_TARGET
+        },
+        'cash_management': {
+            'min_buffer': MIN_CASH_BUFFER_PERCENT,
+            'optimal_buffer': OPTIMAL_CASH_BUFFER_PERCENT,
+            'max_threshold': MAX_CASH_THRESHOLD_PERCENT
+        },
+        'monitoring': {
+            'frequency_hours': RISK_MONITORING_FREQUENCY_HOURS,
+            'history_days': MONITORING_HISTORY_DAYS,
+            'critical_threshold': CRITICAL_RISK_ALERT_THRESHOLD
+        }
+    }
+
+# =============================================================================
+# ENHANCED VALIDATION FUNCTION UPDATE
+# =============================================================================
+
+def validate_enhanced_config() -> bool:
+    """Enhanced validation including portfolio risk settings"""
+    
+    # Run existing validation
+    if not validate_config():
+        return False
+    
+    # Run portfolio risk validation
+    if not validate_portfolio_risk_config():
+        return False
+    
+    print("Enhanced configuration validation: PASSED")
+    return True
+
+
+
+# ==========================================
+# UTILITY FUNCTIONS
+# ==========================================
+
+def get_current_quarter():
+    """Get current quarter string"""
+    now = datetime.now()
+    quarter = ((now.month - 1) // 3) + 1
+    return f"{now.year}_q{quarter}"
+
+def get_rsi_thresholds(volatility_category: str) -> tuple:
+    """Get RSI thresholds based on volatility"""
+    
+    if volatility_category == 'Low':
+        return (RSI_OVERSOLD_LOW_VOL, RSI_OVERBOUGHT_LOW_VOL)
+    elif volatility_category == 'High':
+        return (RSI_OVERSOLD_HIGH_VOL, RSI_OVERBOUGHT_HIGH_VOL)
+    else:
+        return (RSI_OVERSOLD, RSI_OVERBOUGHT)
+
+def get_stop_loss_multiplier(volatility_category: str) -> float:
+    """Get ATR stop loss multiplier based on volatility"""
+    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
+
+def calculate_final_confidence(technical_score: float, fundamental_score: float = 0.5, 
+                             sentiment_score: float = 0.5, category: str = 'B') -> float:
+    """Calculate final confidence score combining all components"""
+    
+    # Weighted combination as per Day 2 specification
+    combined_score = (
+        technical_score * TECHNICAL_WEIGHT +
+        fundamental_score * FUNDAMENTAL_WEIGHT +
+        sentiment_score * SENTIMENT_WEIGHT
+    )
+    
+    # Apply category adjustment
+    category_adj = CATEGORY_MULTIPLIER.get(category, 1.0)
+    final_score = combined_score * category_adj
+    
+    # Ensure within bounds
+    return max(0.0, min(1.0, final_score))
+
+def validate_technical_score(score: float) -> float:
+    """Validate and normalize technical score"""
+    if score is None or np.isnan(score) or np.isinf(score):
+        return 0.5  # Default neutral score
+    return max(0.0, min(1.0, float(score)))
+
+def get_position_size_for_category(base_size: float, category: str, volatility: str, market_cap_type: str) -> float:
+    """Calculate adjusted position size based on stock characteristics"""
+    
+    adjusted_size = base_size
+    adjusted_size *= CATEGORY_MULTIPLIER.get(category, 1.0)
+    adjusted_size *= VOLATILITY_POSITION_MULTIPLIER.get(volatility, 1.0)
+    adjusted_size *= MARKET_CAP_MULTIPLIER.get(market_cap_type, 1.0)
+    
+    # Ensure within limits
+    adjusted_size = max(MIN_POSITION_SIZE, adjusted_size)
+    adjusted_size = min(TOTAL_CAPITAL * MAX_POSITION_SIZE_PERCENT / 100, adjusted_size)
+    
+    return round(adjusted_size, 0)
+
+# Update current quarter on import
+CURRENT_QUARTER = get_current_quarter()
+
+# ==========================================
+# VALIDATION - Basic checks for Day 1/2
+# ==========================================
+
+def validate_config():
+    """Validate critical parameters - called only when needed"""
+    try:
+        assert TOTAL_CAPITAL > 0, "Total capital must be positive"
+        assert 0 < RISK_PER_TRADE <= 20, "Risk per trade must be between 0 and 20%"
+        assert MIN_CONFIDENCE_THRESHOLD <= 1.0, "Confidence threshold must be <= 1.0"
+        assert MIN_RISK_REWARD_RATIO >= 1.0, "Risk-reward ratio must be >= 1.0"
+        print("✓ Configuration validation passed")
+        return True
+    except AssertionError as e:
+        print(f"✗ Configuration validation error: {e}")
+        return False
+    
 # STOP LOSS OPTIMIZATION SETTINGS
 # =============================================================================
 
@@ -404,7 +573,8 @@ TRAILING_STOP_INITIAL_PERCENT = float(os.getenv('TRAILING_STOP_INITIAL', '15.0')
 TRAILING_STOP_MIN_PERCENT = float(os.getenv('TRAILING_STOP_MIN', '8.0'))          # Minimum trailing stop
 TRAILING_STOP_TIGHTENING_THRESHOLD = float(os.getenv('TRAILING_TIGHTEN_THRESHOLD', '10.0'))  # Profit % to start tightening
 
-# Volatility-Based Stop Loss (ADDITIONAL SETTINGS)
+# Volatility-Based Stop Loss
+ATR_STOP_MULTIPLIER = float(os.getenv('ATR_STOP_MULTIPLIER', '2.0'))              # ATR multiplier for stops
 ATR_CALCULATION_PERIODS = int(os.getenv('ATR_PERIODS', '14'))                     # Periods for ATR calculation
 VOLATILITY_STOP_MAX_PERCENT = float(os.getenv('VOLATILITY_STOP_MAX', '20.0'))     # Max volatility stop
 
@@ -469,193 +639,9 @@ VAR_CONFIDENCE_LEVEL = float(os.getenv('VAR_CONFIDENCE', '95.0'))               
 EXPECTED_SHORTFALL_LEVEL = float(os.getenv('ES_LEVEL', '95.0'))                          # Expected shortfall level
 DRAWDOWN_CALCULATION_PERIOD = int(os.getenv('DRAWDOWN_PERIOD', '252'))                   # Trading days for drawdown
 
-# ==========================================
-# PAPER TRADING CONFIGURATION
-# ==========================================
-
-# Paper Trading Settings
-PAPER_TRADING_MODE = True  # Enable paper trading by default
-PAPER_TRADING_INITIAL_CAPITAL = float(os.getenv('PAPER_TRADING_CAPITAL', '100000'))
-PAPER_TRADING_COMMISSION = 0.03  # 0.03% commission per trade
-PAPER_TRADING_SLIPPAGE = 0.05    # 0.05% slippage simulation
-
-# Order Management
-MAX_ORDERS_PER_DAY = 20
-ORDER_VALIDITY_HOURS = 24
-AUTO_EXECUTE_SIGNALS = True  # Auto-convert signals to paper trades
-
-# Performance Tracking
-TRACK_TRADE_PERFORMANCE = True
-PERFORMANCE_REPORTING_FREQUENCY = 'daily'  # daily, weekly, monthly
-
-# Trade Execution Simulation
-EXECUTION_DELAY_SECONDS = 2  # Simulate execution delay
-MARKET_IMPACT_THRESHOLD = 50000  # Position size above which market impact applies
-MARKET_IMPACT_PERCENT = 0.02  # Market impact for large positions
-
-# Risk Controls for Paper Trading
-PAPER_MAX_LOSS_PER_DAY = 5000  # Max loss per day in paper trading
-PAPER_MAX_POSITIONS = 10
-PAPER_POSITION_SIZE_LIMIT = 0.15  # 15% max per position
-
-# Reporting Configuration
-GENERATE_DAILY_REPORTS = True
-SAVE_TRADE_HISTORY = True
-TRADE_HISTORY_RETENTION_DAYS = 90
-
-# Default Scores for Missing Data
-DEFAULT_FUNDAMENTAL_SCORE = 0.5
-DEFAULT_SENTIMENT_SCORE = 0.5
-
-# ==========================================
-# UTILITY FUNCTIONS
-# ==========================================
-
-def get_current_quarter():
-    """Get current quarter string"""
-    now = datetime.now()
-    quarter = ((now.month - 1) // 3) + 1
-    return f"{now.year}_q{quarter}"
-
-def get_rsi_thresholds(volatility_category: str) -> tuple:
-    """Get RSI thresholds based on volatility"""
-    
-    if volatility_category == 'Low':
-        return (RSI_OVERSOLD_LOW_VOL, RSI_OVERBOUGHT_LOW_VOL)
-    elif volatility_category == 'High':
-        return (RSI_OVERSOLD_HIGH_VOL, RSI_OVERBOUGHT_HIGH_VOL)
-    else:
-        return (RSI_OVERSOLD, RSI_OVERBOUGHT)
-
-def get_stop_loss_multiplier(volatility_category: str) -> float:
-    """Get ATR stop loss multiplier based on volatility"""
-    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
-
-def calculate_final_confidence(technical_score: float, fundamental_score: float = 0.5, 
-                             sentiment_score: float = 0.5, category: str = 'B') -> float:
-    """Calculate final confidence score combining all components"""
-    
-    # Weighted combination as per Day 2 specification
-    combined_score = (
-        technical_score * TECHNICAL_WEIGHT +
-        fundamental_score * FUNDAMENTAL_WEIGHT +
-        sentiment_score * SENTIMENT_WEIGHT
-    )
-    
-    # Apply category adjustment
-    category_adj = CATEGORY_MULTIPLIER.get(category, 1.0)
-    final_score = combined_score * category_adj
-    
-    # Ensure within bounds
-    return max(0.0, min(1.0, final_score))
-
-def validate_technical_score(score: float) -> float:
-    """Validate and normalize technical score"""
-    if score is None or np.isnan(score) or np.isinf(score):
-        return 0.5  # Default neutral score
-    return max(0.0, min(1.0, float(score)))
-
-def get_position_size_for_category(base_size: float, category: str, volatility: str, market_cap_type: str) -> float:
-    """Calculate adjusted position size based on stock characteristics"""
-    
-    adjusted_size = base_size
-    adjusted_size *= CATEGORY_MULTIPLIER.get(category, 1.0)
-    adjusted_size *= VOLATILITY_POSITION_MULTIPLIER.get(volatility, 1.0)
-    adjusted_size *= MARKET_CAP_MULTIPLIER.get(market_cap_type, 1.0)
-    
-    # Ensure within limits
-    adjusted_size = max(MIN_POSITION_SIZE, adjusted_size)
-    adjusted_size = min(TOTAL_CAPITAL * MAX_POSITION_SIZE_PERCENT / 100, adjusted_size)
-    
-    return round(adjusted_size, 0)
-
-# Performance Helper Functions
-def get_optimal_batch_size(total_symbols: int) -> int:
-    """Calculate optimal batch size based on total symbols"""
-    if total_symbols <= 50:
-        return min(BATCH_SIZE_SYMBOLS, total_symbols)
-    elif total_symbols <= 200:
-        return min(50, total_symbols // 4)
-    else:
-        return min(100, total_symbols // 8)
-
-def get_worker_count(batch_size: int) -> int:
-    """Calculate optimal worker count for batch size"""
-    return min(MAX_PARALLEL_WORKERS, max(1, batch_size // 10))
-
-def validate_performance_config() -> dict:
-    """Validate performance configuration"""
-    return {
-        'pool_size': DB_CONNECTION_POOL_SIZE,
-        'batch_size': BATCH_SIZE_SYMBOLS,
-        'workers': MAX_PARALLEL_WORKERS,
-        'cache_enabled': ENABLE_INDICATOR_CACHE,
-        'monitoring_enabled': ENABLE_PERFORMANCE_MONITORING
-    }
-
-# Update current quarter on import
-CURRENT_QUARTER = get_current_quarter()
-
 # =============================================================================
 # VALIDATION FUNCTIONS
 # =============================================================================
-
-def validate_config():
-    """Validate critical parameters - called only when needed"""
-    try:
-        assert TOTAL_CAPITAL > 0, "Total capital must be positive"
-        assert 0 < RISK_PER_TRADE <= 20, "Risk per trade must be between 0 and 20%"
-        assert MIN_CONFIDENCE_THRESHOLD <= 1.0, "Confidence threshold must be <= 1.0"
-        assert MIN_RISK_REWARD_RATIO >= 1.0, "Risk-reward ratio must be >= 1.0"
-        print("✓ Configuration validation passed")
-        return True
-    except AssertionError as e:
-        print(f"✗ Configuration validation error: {e}")
-        return False
-
-def validate_portfolio_risk_config() -> bool:
-    """Validate portfolio risk configuration parameters"""
-    
-    try:
-        # Check percentage values are within valid ranges
-        percentage_configs = [
-            ('MAX_SECTOR_ALLOCATION', MAX_SECTOR_ALLOCATION, 1, 100),
-            ('MAX_POSITION_SIZE_PERCENT', MAX_POSITION_SIZE_PERCENT, 1, 50),
-            ('MAX_PORTFOLIO_RISK_PERCENT', MAX_PORTFOLIO_RISK_PERCENT, 5, 50),
-            ('MIN_CASH_BUFFER_PERCENT', MIN_CASH_BUFFER_PERCENT, 5, 30),
-            ('OPTIMAL_CASH_BUFFER_PERCENT', OPTIMAL_CASH_BUFFER_PERCENT, 10, 40)
-        ]
-        
-        for name, value, min_val, max_val in percentage_configs:
-            if not (min_val <= value <= max_val):
-                print(f"Invalid {name}: {value}% (should be {min_val}-{max_val}%)")
-                return False
-        
-        # Check correlation threshold
-        if not (0.1 <= MAX_CORRELATION_THRESHOLD <= 1.0):
-            print(f"Invalid MAX_CORRELATION_THRESHOLD: {MAX_CORRELATION_THRESHOLD}")
-            return False
-        
-        # Check regime multipliers
-        for regime, multiplier in REGIME_POSITION_MULTIPLIERS.items():
-            if not (0.1 <= multiplier <= 2.0):
-                print(f"Invalid regime multiplier for {regime}: {multiplier}")
-                return False
-        
-        # Check consistency
-        if MIN_CASH_BUFFER_PERCENT >= OPTIMAL_CASH_BUFFER_PERCENT:
-            print("MIN_CASH_BUFFER should be less than OPTIMAL_CASH_BUFFER")
-            return False
-        
-        if MAX_POSITION_SIZE_PERCENT * MIN_DIVERSIFICATION_SECTORS > 80:
-            print("Position size and diversification settings may be incompatible")
-            return False
-        
-        return True
-        
-    except Exception as e:
-        print(f"Portfolio risk config validation failed: {e}")
-        return False
 
 def validate_stop_loss_config() -> bool:
     """Validate stop loss configuration parameters"""
@@ -665,6 +651,8 @@ def validate_stop_loss_config() -> bool:
         if not (5.0 <= TRAILING_STOP_INITIAL_PERCENT <= 25.0):
             return False
         if not (3.0 <= TRAILING_STOP_MIN_PERCENT <= 15.0):
+            return False
+        if not (1.0 <= ATR_STOP_MULTIPLIER <= 5.0):
             return False
         if not (5 <= ATR_CALCULATION_PERIODS <= 30):
             return False
@@ -709,57 +697,17 @@ def validate_risk_parity_config() -> bool:
     except Exception:
         return False
 
-def validate_enhanced_config() -> bool:
-    """Enhanced validation including portfolio risk settings"""
-    
-    # Run existing validation
-    if not validate_config():
-        return False
-    
-    # Run portfolio risk validation
-    if not validate_portfolio_risk_config():
-        return False
-    
-    print("Enhanced configuration validation: PASSED")
-    return True
-
 def validate_advanced_config() -> bool:
     """Complete validation including stop loss and risk parity"""
     
     validations = [
         validate_config(),
-        validate_portfolio_risk_config(),
+        validate_portfolio_risk_config() if 'validate_portfolio_risk_config' in globals() else True,
         validate_stop_loss_config(),
         validate_risk_parity_config()
     ]
     
     return all(validations)
-
-def get_portfolio_risk_summary() -> dict:
-    """Get summary of portfolio risk configuration"""
-    
-    return {
-        'concentration_limits': {
-            'max_sector_percent': MAX_SECTOR_ALLOCATION,
-            'max_position_percent': MAX_POSITION_SIZE_PERCENT,
-            'min_sectors': MIN_DIVERSIFICATION_SECTORS
-        },
-        'risk_limits': {
-            'max_portfolio_risk': MAX_PORTFOLIO_RISK_PERCENT,
-            'max_correlation': MAX_CORRELATION_THRESHOLD,
-            'target_beta': PORTFOLIO_BETA_TARGET
-        },
-        'cash_management': {
-            'min_buffer': MIN_CASH_BUFFER_PERCENT,
-            'optimal_buffer': OPTIMAL_CASH_BUFFER_PERCENT,
-            'max_threshold': MAX_CASH_THRESHOLD_PERCENT
-        },
-        'monitoring': {
-            'frequency_hours': RISK_MONITORING_FREQUENCY_HOURS,
-            'history_days': MONITORING_HISTORY_DAYS,
-            'critical_threshold': CRITICAL_RISK_ALERT_THRESHOLD
-        }
-    }
 
 def get_stop_loss_summary() -> dict:
     """Get stop loss configuration summary"""
@@ -802,3 +750,91 @@ def get_risk_parity_summary() -> dict:
             'risk_free_rate': RISK_FREE_RATE
         }
     }
+# ==========================================
+# PAPER TRADING CONFIGURATION  
+# ==========================================
+
+# Paper Trading Settings
+PAPER_TRADING_MODE = True
+PAPER_TRADING_INITIAL_CAPITAL = float(os.getenv('PAPER_TRADING_CAPITAL', '100000'))
+PAPER_TRADING_COMMISSION = 0.03  # 0.03% commission per trade
+PAPER_TRADING_SLIPPAGE = 0.05    # 0.05% slippage simulation
+
+# Order Management
+MAX_ORDERS_PER_DAY = 20
+ORDER_VALIDITY_HOURS = 24
+AUTO_EXECUTE_SIGNALS = True
+
+# Performance Tracking
+TRACK_TRADE_PERFORMANCE = True
+PERFORMANCE_REPORTING_FREQUENCY = 'daily'
+BENCHMARK_SYMBOL = 'NIFTY50'
+
+# Trade Execution Simulation
+EXECUTION_DELAY_SECONDS = 2
+MARKET_IMPACT_THRESHOLD = 50000
+MARKET_IMPACT_PERCENT = 0.02
+
+# Risk Controls for Paper Trading
+PAPER_MAX_LOSS_PER_DAY = 5000
+PAPER_MAX_POSITIONS = 10
+PAPER_POSITION_SIZE_LIMIT = 0.15
+
+# Reporting Configuration
+GENERATE_DAILY_REPORTS = True
+SAVE_TRADE_HISTORY = True
+TRADE_HISTORY_RETENTION_DAYS = 90
+
+# Add these variables to the end of existing config.py file
+
+# ==========================================
+# PAPER TRADING CONFIGURATION
+# ==========================================
+
+# Paper Trading Settings
+PAPER_TRADING_MODE = True  # Enable paper trading by default
+PAPER_TRADING_INITIAL_CAPITAL = float(os.getenv('PAPER_TRADING_CAPITAL', '100000'))
+PAPER_TRADING_COMMISSION = 0.03  # 0.03% commission per trade
+PAPER_TRADING_SLIPPAGE = 0.05    # 0.05% slippage simulation
+
+# Order Management
+MAX_ORDERS_PER_DAY = 20
+ORDER_VALIDITY_HOURS = 24
+AUTO_EXECUTE_SIGNALS = True  # Auto-convert signals to paper trades
+
+# Performance Tracking
+TRACK_TRADE_PERFORMANCE = True
+PERFORMANCE_REPORTING_FREQUENCY = 'daily'  # daily, weekly, monthly
+BENCHMARK_SYMBOL = 'NIFTY50'
+
+# Trade Execution Simulation
+EXECUTION_DELAY_SECONDS = 2  # Simulate execution delay
+MARKET_IMPACT_THRESHOLD = 50000  # Position size above which market impact applies
+MARKET_IMPACT_PERCENT = 0.02  # Market impact for large positions
+
+# Risk Controls for Paper Trading
+PAPER_MAX_LOSS_PER_DAY = 5000  # Max loss per day in paper trading
+PAPER_MAX_POSITIONS = 10
+PAPER_POSITION_SIZE_LIMIT = 0.15  # 15% max per position
+
+# Reporting Configuration
+GENERATE_DAILY_REPORTS = True
+SAVE_TRADE_HISTORY = True
+TRADE_HISTORY_RETENTION_DAYS = 90
+DEFAULT_FUNDAMENTAL_SCORE = 0.5
+DEFAULT_SENTIMENT_SCORE = 0.5
+
+
+# Historical Data Configuration (add after existing data configs)
+DOWNLOAD_FREQUENCY = "once"  # once/5min/15min/60min
+HISTORICAL_DATA_INTERVAL = "5minute"  # 5minute/15minute/60minute/180minute  
+DOWNLOAD_START_DATE = "2020-01-01"  # yyyy-mm-dd
+DOWNLOAD_END_DATE = "today"  # today or yyyy-mm-dd
+
+# Market Hours Configuration  
+MARKET_START_TIME = "09:15"  # Market opening time
+MARKET_END_TIME = "15:30"    # Market closing time
+EXPECTED_RECORDS_5MIN = 75   # Expected 5min intervals per day
+
+# Missing config that I saw in logs
+DEFAULT_FUNDAMENTAL_SCORE = 0.5

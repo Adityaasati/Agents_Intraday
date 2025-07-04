@@ -162,6 +162,15 @@ class NexusTradingSystem:
             print(f"TRADE_MODE: {'yes' if config.TRADE_MODE else 'no'}")
             print(f"LIVE_TRADING_MODE: {config.LIVE_TRADING_MODE}")
             
+            if not hasattr(self, 'historical_agent'):
+                from agents.historical_data_agent import HistoricalDataAgent
+                self.historical_agent = HistoricalDataAgent(self.db_manager)
+                
+                # Check if historical data is current for trading
+                if not self.historical_agent.is_data_current():
+                    self.logger.warning("Historical data may be outdated for live trading")
+                    print("⚠️ Historical data may be outdated - consider running --mode integration first")
+            
             if not config.TRADE_MODE:
                 print("\nTRADE_MODE=no: Generating signals only (no actual orders)")
                 print("Set TRADE_MODE=yes in .env to enable actual trading")
@@ -223,9 +232,19 @@ class NexusTradingSystem:
             print("PAPER TRADING MODE")
             print("=" * 60)
             
+            if not hasattr(self, 'historical_agent'):
+                from agents.historical_data_agent import HistoricalDataAgent
+                self.historical_agent = HistoricalDataAgent(self.db_manager)
+            
+            # Check if historical data is current for trading
+            if not self.historical_agent.is_data_current():
+                self.logger.warning("Historical data may be outdated")
+                print("⚠️ Historical data may be outdated - consider running --mode integration first")
+            
             # Initialize paper trading components
             from paper_trading_manager import PaperTradingManager
             paper_manager = PaperTradingManager()
+            
             
             # Validate setup
             if not paper_manager.validate_paper_trading_setup():
@@ -344,7 +363,8 @@ class NexusTradingSystem:
             'data_pipeline': False,
             'technical_analysis': False,
             'sentiment_analysis': False,
-            'enhanced_sentiment': False
+            'enhanced_sentiment': False,
+            'historical_data_agent': False 
         }
         
         try:
@@ -384,6 +404,9 @@ class NexusTradingSystem:
                 # Test 9: Enhanced sentiment
                 self.logger.info("Test 9: Enhanced sentiment...")
                 test_results['enhanced_sentiment'] = self._test_enhanced_sentiment()
+                
+                self.logger.info("Test 10: Historical data agent...")
+                test_results['historical_data_agent'] = self._test_historical_data_agent()
                 
             # Report results
             self._report_test_results(test_results)
@@ -475,6 +498,7 @@ class NexusTradingSystem:
             ('Environment Check', self._integration_phase_environment),
             ('Database Integration', self._integration_phase_database),
             ('Schema Creation', self._integration_phase_schema),
+            ('Historical Data Setup', self._integration_phase_historical_data),  
             ('Data Access Test', self._integration_phase_data_access),
             ('Technical Analysis', self._integration_phase_technical_analysis),
             ('System Health Check', self._integration_phase_health_check)
@@ -1185,6 +1209,37 @@ class NexusTradingSystem:
         """Schema creation phase"""
         return self._test_agent_tables()
     
+    # Add this method with the other _integration_phase_* methods:
+    def _integration_phase_historical_data(self) -> bool:
+        """Historical data integration phase - runs FIRST"""
+        try:
+            from agents.historical_data_agent import HistoricalDataAgent
+            
+            # Initialize historical data agent
+            self.historical_agent = HistoricalDataAgent(self.db_manager)
+            
+            # Check if download is needed
+            is_current = self.historical_agent.is_data_current()
+            self.logger.info(f"Historical data currency: {is_current}")
+            
+            # Run download if configured for 'once' and data is not current
+            if self.historical_agent.download_frequency == 'once' and not is_current:
+                self.logger.info("Running one-time historical data download...")
+                success = self.historical_agent.run_download()
+                if success:
+                    self.logger.info("Historical data download completed successfully")
+                    return True
+                else:
+                    self.logger.warning("Historical data download failed, continuing with existing data")
+                    return False
+            else:
+                self.logger.info(f"Historical data agent configured for {self.historical_agent.download_frequency} updates")
+                return True
+                
+        except Exception as e:
+            self.logger.error(f"Historical data integration failed: {e}")
+            return False
+    
     def _integration_phase_data_access(self) -> bool:
         """Data access phase"""
         return self._test_existing_tables()
@@ -1378,6 +1433,58 @@ class NexusTradingSystem:
             
         except Exception as e:
             return {'error': str(e), 'timestamp': datetime.now().isoformat()}
+        
+    def _test_historical_data_agent(self) -> bool:
+        """Test historical data agent"""
+        try:
+            from agents.historical_data_agent import HistoricalDataAgent
+            
+            # Initialize if not already done
+            if not hasattr(self, 'historical_agent'):
+                self.historical_agent = HistoricalDataAgent(self.db_manager)
+            
+            # Test configuration loading
+            self.logger.info(f"Download frequency: {self.historical_agent.download_frequency}")
+            self.logger.info(f"Data interval: {self.historical_agent.interval}")
+            self.logger.info(f"Start date: {self.historical_agent.start_date}")
+            self.logger.info(f"Market hours: {self.historical_agent.market_start} - {self.historical_agent.market_end}")
+            
+            # Test data currency check
+            is_current = self.historical_agent.is_data_current()
+            self.logger.info(f"Historical data currency check: {is_current}")
+            
+            # Test symbol retrieval
+            try:
+                symbols = self.historical_agent.get_symbols(5)  # Test with 5 symbols
+                self.logger.info(f"Retrieved {len(symbols)} symbols for testing")
+            except Exception as e:
+                self.logger.warning(f"Symbol retrieval test failed: {e}")
+            
+            # Test kite client (if available)
+            kite_available = False
+            try:
+                kite = self.historical_agent.get_kite_client()
+                kite_available = kite is not None
+                self.logger.info(f"Kite client available: {kite_available}")
+            except Exception as e:
+                self.logger.info(f"Kite client not available: {e}")
+            
+            # If data not current and frequency is 'once', offer to run download
+            if not is_current and self.historical_agent.download_frequency == 'once':
+                if kite_available:
+                    self.logger.info("Historical data download needed and Kite client available")
+                    # In test mode, we just verify the setup but don't run the full download
+                    # The actual download will happen in integration mode
+                    return True
+                else:
+                    self.logger.warning("Historical data download needed but Kite client not available")
+                    return True  # Don't fail test due to missing Kite credentials in test mode
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Historical data agent test failed: {e}")
+            return False
     
     def _report_integration_results(self, results: dict):
         """Report integration test results"""
@@ -1403,6 +1510,10 @@ class NexusTradingSystem:
     def shutdown(self):
         """Clean shutdown of system"""
         try:
+            # Close database connections FIRST
+            if self.db_manager and hasattr(self.db_manager, 'close_connections'):
+                self.db_manager.close_connections()
+            
             # Stop performance monitoring
             try:
                 from utils.performance_monitor import get_performance_monitor
@@ -1411,12 +1522,6 @@ class NexusTradingSystem:
                     performance_monitor.stop_monitoring()
             except:
                 pass
-            
-            # Close database connections
-            if hasattr(self.db_manager, 'close'):
-                self.db_manager.close()
-            elif hasattr(self.db_manager, '_pool'):
-                self.db_manager._pool.closeall()
             
             self.logger.info("System shutdown completed")
             
