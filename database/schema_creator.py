@@ -24,19 +24,16 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import logging
 from typing import Dict, List
+from .connection_config import get_connection_params
+
 
 class SchemaCreator:
     """Complete Schema Creator for Nexus Trading System"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.connection_params = {
-            'host': os.getenv('DATABASE_HOST', 'localhost'),
-            'port': int(os.getenv('DATABASE_PORT', 5435)),
-            'database': os.getenv('DATABASE_NAME'),
-            'user': os.getenv('DATABASE_USER'),
-            'password': os.getenv('DATABASE_PASSWORD')
-        }
+        self.connection_params = get_connection_params()
+        
     
     def create_essential_tables(self) -> bool:
         """Create essential tables for core functionality"""

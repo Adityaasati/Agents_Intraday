@@ -162,7 +162,7 @@ class SystemReporter:
                 cursor.execute("""
                     SELECT COUNT(*), signal_type 
                     FROM agent_live_signals 
-                    WHERE DATE(signal_date) = %s
+                    WHERE DATE(signal_time) = %s
                     GROUP BY signal_type
                 """, (date,))
                 
@@ -185,7 +185,7 @@ class SystemReporter:
                     cursor.execute(f"""
                         SELECT AVG({confidence_col}) 
                         FROM agent_live_signals 
-                        WHERE DATE(signal_date) = %s
+                        WHERE DATE(signal_time) = %s
                     """, (date,))
                     
                     avg_confidence = cursor.fetchone()[0] or 0.5
@@ -232,10 +232,10 @@ class SystemReporter:
                 confidence_col = confidence_columns[0] if confidence_columns else '0.5 as confidence_score'
                 
                 cursor.execute(f"""
-                    SELECT symbol, signal_type, {confidence_col}, signal_date 
+                    SELECT symbol, signal_type, {confidence_col}, signal_time 
                     FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '24 hours'
-                    ORDER BY signal_date DESC 
+                    WHERE signal_time >= NOW() - INTERVAL '24 hours'
+                    ORDER BY signal_time DESC 
                     LIMIT 10
                 """)
                 

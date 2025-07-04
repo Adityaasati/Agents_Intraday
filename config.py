@@ -821,8 +821,9 @@ PAPER_POSITION_SIZE_LIMIT = 0.15  # 15% max per position
 GENERATE_DAILY_REPORTS = True
 SAVE_TRADE_HISTORY = True
 TRADE_HISTORY_RETENTION_DAYS = 90
-
-
+ENABLE_PLACEHOLDER_SCORES = True 
+DEFAULT_FUNDAMENTAL_SCORE = 0.5
+DEFAULT_SENTIMENT_SCORE = 0.5
 # ==========================================
 # ADD THESE LINES TO END OF config.py (Day 7B)
 # ==========================================

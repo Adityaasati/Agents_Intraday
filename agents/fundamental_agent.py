@@ -21,16 +21,14 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime
 import pytz
-
+from .base_agent import BaseAgent
 import config
 
-class FundamentalAgent:
+class FundamentalAgent(BaseAgent):
     """Fundamental Analysis Agent for quality and valuation analysis"""
     
     def __init__(self, db_manager):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager
-        self.ist = pytz.timezone('Asia/Kolkata')
+        super().__init__(db_manager)
     
     def analyze_symbol_fundamentals(self, symbol: str) -> Dict:
         """Complete fundamental analysis for a symbol"""

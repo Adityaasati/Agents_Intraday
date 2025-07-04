@@ -171,10 +171,10 @@ class DashboardMonitor:
             conn = self.db_manager.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute("""
-                    SELECT symbol, signal_type, confidence_score, signal_date 
+                    SELECT symbol, signal_type, confidence_score, signal_time 
                     FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '24 hours'
-                    ORDER BY signal_date DESC 
+                    WHERE signal_time >= NOW() - INTERVAL '24 hours'
+                    ORDER BY signal_time DESC 
                     LIMIT 10
                 """)
                 
@@ -203,7 +203,7 @@ class DashboardMonitor:
                 cursor.execute("""
                     SELECT signal_type, COUNT(*), AVG(confidence_score)
                     FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '7 days'
+                    WHERE signal_time >= NOW() - INTERVAL '7 days'
                     GROUP BY signal_type
                 """)
                 

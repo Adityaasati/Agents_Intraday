@@ -146,6 +146,7 @@ class NexusTradingSystem:
             self.logger.error(traceback.format_exc())
             return False
         finally:
+            self.shutdown() 
             self.logger.info("NEXUS TRADING SYSTEM STOPPING")
             self.logger.info("=" * 50)
     
@@ -1324,6 +1325,20 @@ class NexusTradingSystem:
         except Exception as e:
             self.logger.error(f"System maintenance failed: {e}")
 
+    def _test_data_pipeline(self) -> bool:
+        """Test data pipeline functionality"""
+        try:
+            from utils.data_updater import SimpleDataUpdater
+            data_updater = SimpleDataUpdater(self.db_manager)
+            test_symbols = ['RELIANCE', 'TCS']
+            pipeline_result = data_updater.test_data_pipeline(test_symbols)
+            success_count = pipeline_result.get('successful_updates', 0)
+            self.logger.info(f"Data pipeline test successful: {success_count} symbols updated")
+            return success_count > 0
+        except Exception as e:
+            self.logger.error(f"Data pipeline test failed: {e}")
+            return False
+
     def _cleanup_old_logs(self):
         """Clean up old log files"""
         import config
@@ -1398,8 +1413,10 @@ class NexusTradingSystem:
                 pass
             
             # Close database connections
-            if hasattr(self.db_manager, 'close_connections'):
-                self.db_manager.close_connections()
+            if hasattr(self.db_manager, 'close'):
+                self.db_manager.close()
+            elif hasattr(self.db_manager, '_pool'):
+                self.db_manager._pool.closeall()
             
             self.logger.info("System shutdown completed")
             

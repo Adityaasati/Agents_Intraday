@@ -23,14 +23,13 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import pytz
 import config
+from .base_agent import BaseAgent
 
-class PortfolioAgent:
+class PortfolioAgent(BaseAgent):
     """Portfolio management and tracking agent"""
     
     def __init__(self, db_manager):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager
-        self.ist = pytz.timezone('Asia/Kolkata')
+        super().__init__(db_manager)
     
     def allocate_capital(self, signals: List[Dict], total_capital: float = None) -> Dict:
         """Allocate capital across multiple signals"""

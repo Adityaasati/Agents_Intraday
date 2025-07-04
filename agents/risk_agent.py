@@ -23,14 +23,15 @@ from datetime import datetime, timedelta
 import pytz
 import pandas as pd
 import config
+from .base_agent import BaseAgent
 
-class RiskAgent:
+
+
+class RiskAgent(BaseAgent):
     """Risk management and position sizing agent"""
     
     def __init__(self, db_manager):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager
-        self.ist = pytz.timezone('Asia/Kolkata')
+        super().__init__(db_manager)
     
     def calculate_position_size(self, signal: Dict, total_capital: float = None, 
                               risk_percent: float = None) -> Dict:
@@ -1009,4 +1010,18 @@ class RiskAgent:
             return 'trailing_stop'
         else:
             return 'dynamic_adjustment'
+    def validate_risk_reward_ratio(self, entry_price: float, stop_loss: float, 
+                               target_price: float) -> bool:
+        """Validate risk-reward ratio meets minimum requirement"""
+        if entry_price <= 0 or stop_loss <= 0 or target_price <= 0:
+            return False
+        
+        risk = abs(entry_price - stop_loss)
+        reward = abs(target_price - entry_price)
+        
+        if risk == 0:
+            return False
+        
+        ratio = reward / risk
+        return ratio >= config.MIN_RISK_REWARD_RATIO
     

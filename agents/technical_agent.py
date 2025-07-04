@@ -33,14 +33,14 @@ import time
 import threading
 import config
 from database.enhanced_database_manager import EnhancedDatabaseManager
+from .base_agent import BaseAgent
+from utils.decorators import handle_agent_errors
 
-class TechnicalAgent:
+class TechnicalAgent(BaseAgent): 
     """Technical Analysis Agent for generating trading signals"""
     
-    def __init__(self, db_manager: EnhancedDatabaseManager = None):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager or EnhancedDatabaseManager()
-        self.ist = pytz.timezone('Asia/Kolkata')
+    def __init__(self, db_manager):
+        super().__init__(db_manager)
         self._indicator_cache = {} if config.ENABLE_INDICATOR_CACHE else None
         self._cache_lock = threading.Lock()
         
@@ -57,6 +57,7 @@ class TechnicalAgent:
             self.use_pandas_ta = False
             self.logger.debug(f"pandas_ta not available: {e}, using manual calculations")
     
+    @handle_agent_errors(default_return={'error': 'analysis_failed'})
     def analyze_symbol(self, symbol: str, timeframe: str = '5m', 
                       lookback_days: int = 30) -> Dict:
         """Complete technical analysis for a symbol with robust data handling"""
@@ -724,10 +725,15 @@ class TechnicalAgent:
         technical_score = self._calculate_technical_score(indicators, volatility_category)
         technical_score = config.validate_technical_score(technical_score)
         
-        # For now, use placeholders for fundamental and sentiment scores
-        # These will be replaced when those agents are implemented
-        fundamental_score = 0.5  # Neutral score placeholder
-        sentiment_score = 0.5    # Neutral score placeholder
+        if hasattr(self, 'fundamental_agent'):
+            fundamental_score = self.fundamental_agent.get_score(symbol)
+        else:
+            fundamental_score = config.DEFAULT_FUNDAMENTAL_SCORE
+            
+        if hasattr(self, 'sentiment_agent'):
+            sentiment_score = self.sentiment_agent.get_score(symbol)
+        else:
+            sentiment_score = config.DEFAULT_SENTIMENT_SCORE
         
         # Calculate overall confidence using knowledge graph formula
         overall_confidence = config.calculate_final_confidence(
@@ -1054,42 +1060,32 @@ class TechnicalAgent:
             self.logger.error(f"Failed to store technical analysis for {symbol}: {e}")
     
     def _convert_to_python_type(self, value):
-        """Convert numpy/pandas types to native Python types for database storage"""
-        
+        """Convert any type to Python native type safely"""
         if value is None:
             return None
         
-        try:
-            # Handle numpy types
-            if hasattr(value, 'dtype'):
-                if np.isnan(value) or np.isinf(value):
-                    return None
-                return float(value)
-            
-            # Handle pandas Series (take last value)
-            if hasattr(value, 'iloc'):
-                last_val = value.iloc[-1] if len(value) > 0 else None
-                return self._convert_to_python_type(last_val)
-            
-            # Handle regular numeric types
-            if isinstance(value, (int, float)):
-                if np.isnan(value) or np.isinf(value):
-                    return None
-                return float(value)
-            
-            # Handle strings
-            if isinstance(value, str):
-                return value
-            
-            # Handle datetime
-            if hasattr(value, 'strftime'):
-                return value
-            
-            # Default conversion attempt
-            return float(value) if value is not None else None
-            
-        except (ValueError, TypeError, AttributeError):
-            return None
+        # Handle numpy types
+        if hasattr(value, 'item'):
+            return value.item()
+        
+        # Handle pandas timestamp
+        if hasattr(value, 'to_pydatetime'):
+            return value.to_pydatetime()
+        
+        # Handle Decimal
+        from decimal import Decimal
+        if isinstance(value, Decimal):
+            return float(value)
+        
+        # Handle numpy arrays
+        if hasattr(value, 'tolist'):
+            return value.tolist()
+        
+        # Handle numpy/pandas numeric types
+        if hasattr(value, '__float__'):
+            return float(value)
+        
+        return value
     
     def get_analysis_summary(self, symbols: List[str]) -> Dict:
         """Get analysis summary for multiple symbols"""
@@ -1270,3 +1266,16 @@ class TechnicalAgent:
             'cache_size': len(self._indicator_cache),
             'cache_entries': list(self._indicator_cache.keys())
         }
+    def get_multiple_fundamental_data(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Get fundamental data for multiple symbols in one query"""
+        if not symbols:
+            return {}
+        
+        placeholders = ','.join(['%s'] * len(symbols))
+        query = f"""
+            SELECT * FROM stocks_categories_table 
+            WHERE symbol IN ({placeholders})
+        """
+        
+        results = self.execute_query(query, symbols, fetch_all=True)
+        return {row['symbol']: row for row in results}

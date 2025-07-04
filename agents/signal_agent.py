@@ -22,18 +22,16 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime
 import pytz
-
+from .base_agent import BaseAgent
 import config
 from agents.technical_agent import TechnicalAgent
 from agents.fundamental_agent import FundamentalAgent
 
-class SignalAgent:
+class SignalAgent(BaseAgent):
     """Master signal generation coordinator"""
     
     def __init__(self, db_manager):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager
-        self.ist = pytz.timezone('Asia/Kolkata')
+        super().__init__(db_manager)
         
         # Initialize sub-agents
         self.technical_agent = TechnicalAgent(db_manager)
@@ -827,3 +825,17 @@ class SignalAgent:
                     
         except Exception as e:
             self.logger.error(f"Failed to mark signal as executed: {e}")
+
+    def get_multiple_fundamental_data(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Get fundamental data for multiple symbols in one query"""
+        if not symbols:
+            return {}
+        
+        placeholders = ','.join(['%s'] * len(symbols))
+        query = f"""
+            SELECT * FROM stocks_categories_table 
+            WHERE symbol IN ({placeholders})
+        """
+        
+        results = self.execute_query(query, symbols, fetch_all=True)
+        return {row['symbol']: row for row in results}

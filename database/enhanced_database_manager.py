@@ -14,18 +14,23 @@ import threading
 import time
 import config
 import json
+from .connection_config import get_connection_params
+
 
 class EnhancedDatabaseManager:
     """Simplified Database Manager for Day 1 - Nexus Trading System"""
     
+    # In __init__ method:
     def __init__(self):
+        self.connection_params = get_connection_params()
+        
         self.logger = logging.getLogger(__name__)
         self.ist = pytz.timezone('Asia/Kolkata')
-        self.connection_pool = None
+        self._pool = None
         self._initialize_connection_pool()
         self._connection_pool = None
-        self._query_cache = {} if hasattr(config, 'ENABLE_QUERY_CACHE') and config.ENABLE_QUERY_CACHE else None
-        self._indicator_cache = {} if hasattr(config, 'ENABLE_INDICATOR_CACHE') and config.ENABLE_INDICATOR_CACHE else None
+        self._query_cache = {} if getattr(config, 'ENABLE_QUERY_CACHE', False) else None
+        self._indicator_cache = {} if getattr(config, 'ENABLE_INDICATOR_CACHE', False) else None
         self._cache_lock = threading.Lock()
         self._performance_stats = {
             'queries_executed': 0,
@@ -36,9 +41,8 @@ class EnhancedDatabaseManager:
         self._init_connection_pool()
         self._create_performance_indexes()
         try:
-            if hasattr(config, 'DB_CONNECTION_POOL_MAX'):
-                self._init_connection_pool()
-            if hasattr(config, 'ENABLE_QUERY_OPTIMIZATION'):
+            self._init_connection_pool()
+            if getattr(config, 'ENABLE_QUERY_OPTIMIZATION', False):
                 self._create_performance_indexes()
         except Exception as e:
             self.logger.warning(f"Performance features initialization failed: {e}")
@@ -447,6 +451,14 @@ class EnhancedDatabaseManager:
         if self.connection_pool:
             self.connection_pool.closeall()
             self.logger.info("Database connections closed")
+    def close(self):
+        """Close all database connections"""
+        try:
+            if hasattr(self, '_pool') and self._pool:
+                self._pool.closeall()
+                self.logger.info("Connection pool closed")
+        except Exception as e:
+            self.logger.error(f"Error closing connection pool: {e}")
     
     # Add these methods to the existing EnhancedDatabaseManager class
 
@@ -1061,7 +1073,7 @@ class EnhancedDatabaseManager:
         """Create performance indexes"""
         indexes = [
             "CREATE INDEX IF NOT EXISTS idx_agent_signals_symbol ON agent_live_signals (symbol)",
-            "CREATE INDEX IF NOT EXISTS idx_agent_signals_date ON agent_live_signals (signal_date)",
+            "CREATE INDEX IF NOT EXISTS idx_agent_signals_date ON agent_live_signals (signal_time)",
             "CREATE INDEX IF NOT EXISTS idx_stocks_categories_symbol ON stocks_categories_table (symbol)",
             "CREATE INDEX IF NOT EXISTS idx_technical_indicators_symbol ON agent_technical_indicators (symbol, date)"
         ]
@@ -1169,7 +1181,7 @@ class EnhancedDatabaseManager:
                 cursor.executemany("""
                     INSERT INTO agent_live_signals 
                     (symbol, signal_type, confidence_score, entry_price, stop_loss, 
-                     target_price, position_size, reasoning, signal_date)
+                     target_price, position_size, reasoning, signal_time)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, values)
                 
@@ -1262,7 +1274,7 @@ class EnhancedDatabaseManager:
                 # Cleanup old signals (keep last 30 days)
                 cleanup_date = datetime.now() - timedelta(days=30)
                 cursor.execute(
-                    "DELETE FROM agent_live_signals WHERE signal_date < %s",
+                    "DELETE FROM agent_live_signals WHERE signal_time < %s",
                     (cleanup_date,)
                 )
                 
@@ -1295,14 +1307,14 @@ class EnhancedDatabaseManager:
                 # Recent signals count
                 cursor.execute("""
                     SELECT COUNT(*) FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '24 hours'
+                    WHERE signal_time >= NOW() - INTERVAL '24 hours'
                 """)
                 recent_signals = cursor.fetchone()[0]
                 
                 # Signal distribution
                 cursor.execute("""
                     SELECT signal_type, COUNT(*) FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '7 days'
+                    WHERE signal_time >= NOW() - INTERVAL '7 days'
                     GROUP BY signal_type
                 """)
                 signal_distribution = dict(cursor.fetchall())
@@ -1319,7 +1331,7 @@ class EnhancedDatabaseManager:
                     confidence_col = confidence_columns[0]  # Use first available
                     cursor.execute(f"""
                         SELECT AVG({confidence_col}) FROM agent_live_signals 
-                        WHERE signal_date >= NOW() - INTERVAL '24 hours'
+                        WHERE signal_time >= NOW() - INTERVAL '24 hours'
                     """)
                     avg_confidence = cursor.fetchone()[0] or 0
                 else:
@@ -1401,7 +1413,7 @@ class EnhancedDatabaseManager:
                 if cursor.fetchone()[0]:
                     cursor.execute("""
                         DELETE FROM agent_live_signals 
-                        WHERE signal_date < %s
+                        WHERE signal_time < %s
                     """, (cutoff_date,))
                     
                     signals_cleaned = cursor.rowcount
@@ -1471,7 +1483,7 @@ class EnhancedDatabaseManager:
                 # Check recent data activity
                 cursor.execute("""
                     SELECT COUNT(*) FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '1 hour'
+                    WHERE signal_time >= NOW() - INTERVAL '1 hour'
                 """)
                 recent_activity = cursor.fetchone()[0]
                 health_data['recent_activity'] = recent_activity
@@ -1527,10 +1539,10 @@ class EnhancedDatabaseManager:
                 
                 # Recent signals with correct column names
                 cursor.execute(f"""
-                    SELECT symbol, signal_type, {confidence_col}, signal_date 
+                    SELECT symbol, signal_type, {confidence_col}, signal_time 
                     FROM agent_live_signals 
-                    WHERE signal_date >= NOW() - INTERVAL '7 days'
-                    ORDER BY signal_date DESC
+                    WHERE signal_time >= NOW() - INTERVAL '7 days'
+                    ORDER BY signal_time DESC
                     LIMIT 100
                 """)
                 
@@ -1540,7 +1552,7 @@ class EnhancedDatabaseManager:
                         'symbol': row[0],
                         'signal_type': row[1],
                         'confidence_score': float(row[2]) if row[2] is not None else 0.5,
-                        'signal_date': row[3].isoformat() if row[3] else datetime.now().isoformat()
+                        'signal_time': row[3].isoformat() if row[3] else datetime.now().isoformat()
                     })
                 
                 backup_data['recent_signals'] = signals
@@ -1561,3 +1573,17 @@ class EnhancedDatabaseManager:
         except Exception as e:
             self.logger.error(f"Backup failed: {e}")
             return {'status': 'failed', 'error': str(e)}
+    
+    def get_multiple_fundamental_data(self, symbols: List[str]) -> Dict[str, Dict]:
+        """Get fundamental data for multiple symbols in one query"""
+        if not symbols:
+            return {}
+        
+        placeholders = ','.join(['%s'] * len(symbols))
+        query = f"""
+            SELECT * FROM stocks_categories_table 
+            WHERE symbol IN ({placeholders})
+        """
+        
+        results = self.execute_query(query, symbols, fetch_all=True)
+        return {row['symbol']: row for row in results}

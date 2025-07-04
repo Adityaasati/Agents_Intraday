@@ -22,14 +22,14 @@ import logging
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import pytz
+from .base_agent import BaseAgent
 
-class NewsSentimentAgent:
+
+class NewsSentimentAgent(BaseAgent):
     """News sentiment analysis for trading signals"""
     
     def __init__(self, db_manager):
-        self.logger = logging.getLogger(__name__)
-        self.db_manager = db_manager
-        self.ist = pytz.timezone('Asia/Kolkata')
+        super().__init__(db_manager)
         
         # Initialize sentiment components
         self._init_sentiment_components()
