@@ -16,21 +16,29 @@ import config
 import json
 from .connection_config import get_connection_params
 
-
 class EnhancedDatabaseManager:
     """Simplified Database Manager for Day 1 - Nexus Trading System"""
     
     # In __init__ method:
     def __init__(self):
-        self.connection_params = get_connection_params()
+        self.connection_params = {
+            'host': os.getenv('DATABASE_HOST', 'localhost'),
+            'port': os.getenv('DATABASE_PORT', '5432'),
+            'database': os.getenv('DATABASE_NAME'),
+            'user': os.getenv('DATABASE_USER'),
+            'password': os.getenv('DATABASE_PASSWORD')
+        }
         
         self.logger = logging.getLogger(__name__)
         self.ist = pytz.timezone('Asia/Kolkata')
-        self._pool = None
+        
+        # Use the ORIGINAL attribute name
+        self.connection_pool = None  # ← NOT _connection_pool
         self._initialize_connection_pool()
-        self._connection_pool = None
-        self._query_cache = {} if getattr(config, 'ENABLE_QUERY_CACHE', False) else None
-        self._indicator_cache = {} if getattr(config, 'ENABLE_INDICATOR_CACHE', False) else None
+        
+        # Keep the rest as is
+        self._query_cache = {} if hasattr(config, 'ENABLE_QUERY_CACHE') and config.ENABLE_QUERY_CACHE else None
+        self._indicator_cache = {} if hasattr(config, 'ENABLE_INDICATOR_CACHE') and config.ENABLE_INDICATOR_CACHE else None
         self._cache_lock = threading.Lock()
         self._performance_stats = {
             'queries_executed': 0,
@@ -38,14 +46,6 @@ class EnhancedDatabaseManager:
             'avg_query_time': 0.0,
             'last_cleanup': datetime.now()
         }
-        self._init_connection_pool()
-        self._create_performance_indexes()
-        try:
-            self._init_connection_pool()
-            if getattr(config, 'ENABLE_QUERY_OPTIMIZATION', False):
-                self._create_performance_indexes()
-        except Exception as e:
-            self.logger.warning(f"Performance features initialization failed: {e}")
         
     def _initialize_connection_pool(self):
         """Initialize PostgreSQL connection pool"""
@@ -168,13 +168,24 @@ class EnhancedDatabaseManager:
     
     def get_fundamental_data(self, symbol: str) -> Dict:
         """Get complete fundamental data for a symbol"""
-        query = """
-        SELECT * FROM stocks_categories_table 
-        WHERE symbol = %s
-        """
-        
-        result = self.execute_query(query, (symbol,))
-        return result[0] if result else {}
+        try:
+            query = """
+            SELECT * FROM stocks_categories_table 
+            WHERE symbol = %s
+            """
+            
+            result = self.execute_query(query, (symbol,))
+            
+            # Ensure we always return a dict
+            if result and isinstance(result, list) and len(result) > 0:
+                return dict(result[0]) if result[0] else {}
+            else:
+                self.logger.warning(f"No fundamental data found for {symbol}")
+                return {}
+                
+        except Exception as e:
+            self.logger.error(f"Error getting fundamental data for {symbol}: {e}")
+            return {}
     
     def get_available_quarters(self) -> List[str]:
         """Get list of available historical_data_3m_* tables"""
@@ -190,8 +201,21 @@ class EnhancedDatabaseManager:
     
     # Update the get_historical_data method to auto-create current quarter table
 
-    def get_historical_data(self, symbol: str, limit: int = 100) -> pd.DataFrame:
-        """Get historical data for symbol with proper LIMIT clause"""
+    def get_historical_data(self, symbol: str, *args) -> pd.DataFrame:
+        """Get historical data with flexible parameters"""
+        
+        # Parameter handling (as before)
+        if len(args) == 0:
+            limit = 100
+        elif len(args) == 1:
+            limit = args[0]
+        elif len(args) == 2:
+            start_date, end_date = args
+            days_diff = (end_date - start_date).days if hasattr(args[0], 'days') else 30
+            limit = days_diff * 24 * 12
+        else:
+            limit = 100
+        
         try:
             quarter_table = self._get_current_quarter_table()
             
@@ -203,8 +227,10 @@ class EnhancedDatabaseManager:
             LIMIT %s
             """
             
-            conn = self.get_connection()
-            df = pd.read_sql_query(query, conn, params=(symbol, limit))
+            # Fix SQLAlchemy warning by using connection string
+            conn_string = f"postgresql://{self.connection_params['user']}:{self.connection_params['password']}@{self.connection_params['host']}:{self.connection_params['port']}/{self.connection_params['database']}"
+            
+            df = pd.read_sql_query(query, conn_string, params=(symbol, limit))
             
             if not df.empty:
                 df['date'] = pd.to_datetime(df['date'])
@@ -213,24 +239,8 @@ class EnhancedDatabaseManager:
             return df
             
         except Exception as e:
-            self.logger.error(f"Could not query {quarter_table}: {e}")
-            # Try previous quarter
-            try:
-                prev_quarter_table = self._get_previous_quarter_table()
-                query = f"""
-                SELECT date, open, high, low, close, volume
-                FROM {prev_quarter_table}
-                WHERE symbol = %s
-                ORDER BY date DESC
-                LIMIT %s
-                """
-                df = pd.read_sql_query(query, conn, params=(symbol, limit))
-                if not df.empty:
-                    df['date'] = pd.to_datetime(df['date'])
-                    df = df.sort_values('date')
-                return df
-            except:
-                return pd.DataFrame()
+            self.logger.error(f"Historical data query failed: {e}")
+            return pd.DataFrame()
     
     def _get_previous_quarter_table(self) -> str:
         """Get previous quarter table name"""
@@ -1587,3 +1597,31 @@ class EnhancedDatabaseManager:
         
         results = self.execute_query(query, symbols, fetch_all=True)
         return {row['symbol']: row for row in results}
+    
+    
+    def get_fundamental_data(self, symbol: str) -> Dict:
+        """Get complete fundamental data for a symbol"""
+        try:
+            query = """
+            SELECT * FROM stocks_categories_table 
+            WHERE symbol = %s
+            """
+            
+            result = self.execute_query(query, (symbol,))
+            
+            if result and isinstance(result, list) and len(result) > 0:
+                # Convert Row to dict properly
+                row_data = result[0]
+                if hasattr(row_data, '_asdict'):
+                    return row_data._asdict()
+                elif hasattr(row_data, 'keys'):
+                    return dict(row_data)
+                else:
+                    return {}
+            else:
+                self.logger.warning(f"No fundamental data found for {symbol}")
+                return {}
+                
+        except Exception as e:
+            self.logger.error(f"Error getting fundamental data for {symbol}: {e}")
+            return {}

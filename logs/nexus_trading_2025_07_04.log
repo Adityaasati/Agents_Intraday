@@ -546,3 +546,402 @@ LINE 2: ...  SELECT symbol, signal_type, overall_confidence, signal_dat...
 2025-07-04 11:17:33,681 | INFO     | nexus_trading.main   | ==================================================
 2025-07-04 11:17:33,681 | INFO     | utils.performance_monitor | Performance monitoring stopped
 2025-07-04 11:17:33,681 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 12:56:48,835 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:56:48,835 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 12:56:48,836 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 12:56:48,836 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:56:48,836 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 12:56:48,837 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 12:56:49,844 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 12:56:49,844 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 12:56:50,258 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 12:56:50,258 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 12:56:50,489 | INFO     | database.enhanced_database_manager | Connection pool initialized: 20 connections
+2025-07-04 12:56:50,493 | ERROR    | database.enhanced_database_manager | Connection test failed: 'EnhancedDatabaseManager' object has no attribute 'connection_pool'
+2025-07-04 12:56:50,523 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 12:56:50,523 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 12:56:50,524 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 12:56:50,524 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:56:50,525 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 12:56:50,525 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 12:59:00,190 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:59:00,190 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 12:59:00,191 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 12:59:00,191 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:59:00,191 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 12:59:00,191 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 12:59:01,175 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 12:59:01,176 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 12:59:01,591 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 12:59:01,592 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 12:59:01,813 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-07-04 12:59:01,838 | INFO     | nexus_trading.main   | Database connection successful
+2025-07-04 12:59:01,839 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 2}
+2025-07-04 12:59:01,839 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-07-04 12:59:01,843 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-07-04 12:59:01,845 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-07-04 12:59:01,848 | INFO     | nexus_trading.main   | Found 2 historical data quarters
+2025-07-04 12:59:01,848 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-07-04 12:59:02,159 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-07-04 12:59:02,159 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-07-04 12:59:02,368 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-07-04 12:59:02,368 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-07-04 12:59:02,440 | INFO     | nexus_trading.main   | All essential tables verified
+2025-07-04 12:59:02,440 | INFO     | nexus_trading.main   | Test 5: Sentiment tables...
+2025-07-04 12:59:02,443 | INFO     | database.enhanced_database_manager | Sentiment tables created successfully
+2025-07-04 12:59:02,443 | INFO     | nexus_trading.main   | Sentiment tables created successfully
+2025-07-04 12:59:02,443 | INFO     | nexus_trading.main   | Test 6: Data pipeline...
+2025-07-04 12:59:02,454 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 12:59:02,457 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-07-04 12:59:02,461 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 12:59:02,463 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-07-04 12:59:02,463 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-07-04 12:59:02,463 | INFO     | nexus_trading.main   | Test 7: Technical analysis...
+2025-07-04 12:59:03,269 | INFO     | nexus_trading.main   | Testing signal generation with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-07-04 12:59:04,902 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 12:59:04,902 | WARNING  | SignalAgent          | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 12:59:04,910 | INFO     | TechnicalAgent       | No historical data for HDFCBANK, using synthetic data for testing
+2025-07-04 12:59:05,028 | ERROR    | TechnicalAgent       | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 12:59:05,028 | WARNING  | SignalAgent          | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 12:59:05,035 | INFO     | TechnicalAgent       | No historical data for ICICIBANK, using synthetic data for testing
+2025-07-04 12:59:05,122 | ERROR    | TechnicalAgent       | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 12:59:05,122 | WARNING  | SignalAgent          | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 12:59:05,123 | INFO     | nexus_trading.main   | Trying direct technical analysis...
+2025-07-04 12:59:05,145 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: connection pool exhausted
+2025-07-04 12:59:05,145 | WARNING  | nexus_trading.main   | No signals generated
+2025-07-04 12:59:05,145 | INFO     | nexus_trading.main   | Test 8: Sentiment analysis...
+2025-07-04 12:59:06,074 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 12:59:06,075 | ERROR    | database.enhanced_database_manager | Testing symbols retrieval failed: connection pool exhausted
+2025-07-04 12:59:06,075 | ERROR    | NewsSentimentAgent   | Enhanced sentiment analysis failed for RELIANCE: connection pool exhausted
+2025-07-04 12:59:06,075 | INFO     | nexus_trading.main   | Sentiment for RELIANCE: 0.500 (error)
+2025-07-04 12:59:06,076 | ERROR    | NewsSentimentAgent   | Enhanced sentiment analysis failed for TCS: connection pool exhausted
+2025-07-04 12:59:06,076 | INFO     | nexus_trading.main   | Sentiment for TCS: 0.500 (error)
+2025-07-04 12:59:06,076 | INFO     | nexus_trading.main   | Test 9: Enhanced sentiment...
+2025-07-04 12:59:06,080 | ERROR    | database.enhanced_database_manager | Testing symbols retrieval failed: connection pool exhausted
+2025-07-04 12:59:06,080 | ERROR    | NewsSentimentAgent   | Enhanced sentiment analysis failed for RELIANCE: connection pool exhausted
+2025-07-04 12:59:06,081 | INFO     | nexus_trading.main   | Enhanced sentiment RELIANCE: 0.500
+2025-07-04 12:59:06,081 | ERROR    | database.enhanced_database_manager | Failed to get sentiment history for RELIANCE: connection pool exhausted
+2025-07-04 12:59:06,081 | INFO     | nexus_trading.main   | Trend RELIANCE: unknown
+2025-07-04 12:59:06,082 | ERROR    | NewsSentimentAgent   | Enhanced sentiment analysis failed for TCS: connection pool exhausted
+2025-07-04 12:59:06,082 | INFO     | nexus_trading.main   | Enhanced sentiment TCS: 0.500
+2025-07-04 12:59:06,082 | ERROR    | database.enhanced_database_manager | Failed to get sentiment history for TCS: connection pool exhausted
+2025-07-04 12:59:06,082 | INFO     | nexus_trading.main   | Trend TCS: unknown
+2025-07-04 12:59:06,083 | ERROR    | database.enhanced_database_manager | Failed to get latest sentiment for RELIANCE: connection pool exhausted
+2025-07-04 12:59:06,083 | ERROR    | database.enhanced_database_manager | Failed to get latest sentiment for TCS: connection pool exhausted
+2025-07-04 12:59:06,083 | ERROR    | database.enhanced_database_manager | Failed to get sentiment history for RELIANCE: connection pool exhausted
+2025-07-04 12:59:06,084 | ERROR    | database.enhanced_database_manager | Failed to get sentiment history for TCS: connection pool exhausted
+2025-07-04 12:59:06,084 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 12:59:06,106 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 12:59:06,106 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 12:59:06,106 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 12:59:06,107 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 12:59:06,107 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 12:59:06,107 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:04:48,877 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:04:48,877 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 13:04:48,877 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 13:04:48,878 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:04:48,878 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 13:04:48,878 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 13:04:49,844 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 13:04:49,844 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 13:04:50,222 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 13:04:50,223 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 13:04:50,460 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-07-04 13:04:50,487 | INFO     | nexus_trading.main   | Database connection successful
+2025-07-04 13:04:50,488 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 2}
+2025-07-04 13:04:50,488 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-07-04 13:04:50,490 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-07-04 13:04:50,491 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-07-04 13:04:50,493 | INFO     | nexus_trading.main   | Found 2 historical data quarters
+2025-07-04 13:04:50,493 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-07-04 13:04:50,806 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-07-04 13:04:50,806 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-07-04 13:04:50,907 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-07-04 13:04:50,907 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-07-04 13:04:50,973 | INFO     | nexus_trading.main   | All essential tables verified
+2025-07-04 13:04:50,973 | INFO     | nexus_trading.main   | Test 5: Sentiment tables...
+2025-07-04 13:04:50,975 | INFO     | database.enhanced_database_manager | Sentiment tables created successfully
+2025-07-04 13:04:50,976 | INFO     | nexus_trading.main   | Sentiment tables created successfully
+2025-07-04 13:04:50,976 | INFO     | nexus_trading.main   | Test 6: Data pipeline...
+2025-07-04 13:04:50,986 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:04:50,989 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-07-04 13:04:50,991 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:04:50,993 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-07-04 13:04:50,993 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-07-04 13:04:50,994 | INFO     | nexus_trading.main   | Test 7: Technical analysis...
+2025-07-04 13:04:51,656 | INFO     | nexus_trading.main   | Testing signal generation with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-07-04 13:04:52,370 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,371 | WARNING  | SignalAgent          | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,439 | INFO     | TechnicalAgent       | No historical data for HDFCBANK, using synthetic data for testing
+2025-07-04 13:04:52,463 | ERROR    | TechnicalAgent       | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,463 | WARNING  | SignalAgent          | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,530 | INFO     | TechnicalAgent       | No historical data for ICICIBANK, using synthetic data for testing
+2025-07-04 13:04:52,550 | ERROR    | TechnicalAgent       | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,551 | WARNING  | SignalAgent          | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,551 | INFO     | nexus_trading.main   | Trying direct technical analysis...
+2025-07-04 13:04:52,631 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:04:52,631 | WARNING  | nexus_trading.main   | No signals generated
+2025-07-04 13:04:52,632 | INFO     | nexus_trading.main   | Test 8: Sentiment analysis...
+2025-07-04 13:04:53,709 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:04:54,800 | INFO     | nexus_trading.main   | Sentiment for RELIANCE: 0.500 (no_news)
+2025-07-04 13:04:55,621 | INFO     | nexus_trading.main   | Sentiment for HDFCBANK: 0.500 (no_news)
+2025-07-04 13:04:55,622 | INFO     | nexus_trading.main   | Test 9: Enhanced sentiment...
+2025-07-04 13:04:56,524 | INFO     | nexus_trading.main   | Enhanced sentiment RELIANCE: 0.500
+2025-07-04 13:04:56,529 | INFO     | nexus_trading.main   | Trend RELIANCE: unknown
+2025-07-04 13:04:57,361 | INFO     | nexus_trading.main   | Enhanced sentiment HDFCBANK: 0.500
+2025-07-04 13:04:57,363 | INFO     | nexus_trading.main   | Trend HDFCBANK: unknown
+2025-07-04 13:04:57,367 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:04:57,392 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:04:57,393 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:04:57,393 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 13:04:57,393 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:04:57,395 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:04:57,395 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:09:05,281 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:09:05,282 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 13:09:05,282 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 13:09:05,282 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:09:05,283 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 13:09:05,283 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 13:09:06,313 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 13:09:06,313 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 13:09:06,726 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 13:09:06,727 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 13:09:06,921 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-07-04 13:09:06,946 | INFO     | nexus_trading.main   | Database connection successful
+2025-07-04 13:09:06,946 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 2}
+2025-07-04 13:09:06,946 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-07-04 13:09:06,949 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-07-04 13:09:06,950 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-07-04 13:09:06,952 | INFO     | nexus_trading.main   | Found 2 historical data quarters
+2025-07-04 13:09:06,953 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-07-04 13:09:07,273 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-07-04 13:09:07,274 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-07-04 13:09:07,369 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-07-04 13:09:07,370 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-07-04 13:09:07,438 | INFO     | nexus_trading.main   | All essential tables verified
+2025-07-04 13:09:07,438 | INFO     | nexus_trading.main   | Test 5: Sentiment tables...
+2025-07-04 13:09:07,440 | INFO     | database.enhanced_database_manager | Sentiment tables created successfully
+2025-07-04 13:09:07,441 | INFO     | nexus_trading.main   | Sentiment tables created successfully
+2025-07-04 13:09:07,441 | INFO     | nexus_trading.main   | Test 6: Data pipeline...
+2025-07-04 13:09:07,449 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:09:07,452 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-07-04 13:09:07,454 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:09:07,455 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-07-04 13:09:07,456 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-07-04 13:09:07,456 | INFO     | nexus_trading.main   | Test 7: Technical analysis...
+2025-07-04 13:09:08,150 | INFO     | nexus_trading.main   | Testing signal generation with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-07-04 13:09:09,070 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,070 | WARNING  | SignalAgent          | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,138 | INFO     | TechnicalAgent       | No historical data for HDFCBANK, using synthetic data for testing
+2025-07-04 13:09:09,163 | ERROR    | TechnicalAgent       | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,164 | WARNING  | SignalAgent          | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,235 | INFO     | TechnicalAgent       | No historical data for ICICIBANK, using synthetic data for testing
+2025-07-04 13:09:09,255 | ERROR    | TechnicalAgent       | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,287 | WARNING  | SignalAgent          | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,287 | INFO     | nexus_trading.main   | Trying direct technical analysis...
+2025-07-04 13:09:09,374 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:09:09,374 | WARNING  | nexus_trading.main   | No signals generated
+2025-07-04 13:09:09,375 | INFO     | nexus_trading.main   | Test 8: Sentiment analysis...
+2025-07-04 13:09:10,395 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:09:11,511 | INFO     | nexus_trading.main   | Sentiment for RELIANCE: 0.500 (no_news)
+2025-07-04 13:09:12,340 | INFO     | nexus_trading.main   | Sentiment for HDFCBANK: 0.500 (no_news)
+2025-07-04 13:09:12,341 | INFO     | nexus_trading.main   | Test 9: Enhanced sentiment...
+2025-07-04 13:09:13,268 | INFO     | nexus_trading.main   | Enhanced sentiment RELIANCE: 0.500
+2025-07-04 13:09:13,273 | INFO     | nexus_trading.main   | Trend RELIANCE: unknown
+2025-07-04 13:09:14,078 | INFO     | nexus_trading.main   | Enhanced sentiment HDFCBANK: 0.500
+2025-07-04 13:09:14,080 | INFO     | nexus_trading.main   | Trend HDFCBANK: unknown
+2025-07-04 13:09:14,083 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:09:14,110 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:09:14,111 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:09:14,111 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 13:09:14,111 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:09:14,112 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:09:14,112 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:11:09,198 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:11:09,198 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 13:11:09,198 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 13:11:09,199 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:11:09,199 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 13:11:09,199 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 13:11:10,189 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 13:11:10,190 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 13:11:10,614 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 13:11:10,615 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 13:11:10,815 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-07-04 13:11:10,839 | INFO     | nexus_trading.main   | Database connection successful
+2025-07-04 13:11:10,840 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 2}
+2025-07-04 13:11:10,840 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-07-04 13:11:10,844 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-07-04 13:11:10,844 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-07-04 13:11:10,846 | INFO     | nexus_trading.main   | Found 2 historical data quarters
+2025-07-04 13:11:10,847 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-07-04 13:11:11,292 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-07-04 13:11:11,293 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-07-04 13:11:11,355 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-07-04 13:11:11,356 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-07-04 13:11:11,421 | INFO     | nexus_trading.main   | All essential tables verified
+2025-07-04 13:11:11,421 | INFO     | nexus_trading.main   | Test 5: Sentiment tables...
+2025-07-04 13:11:11,423 | INFO     | database.enhanced_database_manager | Sentiment tables created successfully
+2025-07-04 13:11:11,424 | INFO     | nexus_trading.main   | Sentiment tables created successfully
+2025-07-04 13:11:11,424 | INFO     | nexus_trading.main   | Test 6: Data pipeline...
+2025-07-04 13:11:11,433 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:11:11,436 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-07-04 13:11:11,438 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:11:11,439 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-07-04 13:11:11,439 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-07-04 13:11:11,440 | INFO     | nexus_trading.main   | Test 7: Technical analysis...
+2025-07-04 13:11:12,114 | INFO     | nexus_trading.main   | Testing signal generation with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-07-04 13:11:12,811 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,811 | WARNING  | SignalAgent          | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,878 | INFO     | TechnicalAgent       | No historical data for HDFCBANK, using synthetic data for testing
+2025-07-04 13:11:12,903 | ERROR    | TechnicalAgent       | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,904 | WARNING  | SignalAgent          | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,972 | INFO     | TechnicalAgent       | No historical data for ICICIBANK, using synthetic data for testing
+2025-07-04 13:11:12,993 | ERROR    | TechnicalAgent       | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,994 | WARNING  | SignalAgent          | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:11:12,994 | INFO     | nexus_trading.main   | Trying direct technical analysis...
+2025-07-04 13:11:13,181 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:11:13,182 | WARNING  | nexus_trading.main   | No signals generated
+2025-07-04 13:11:13,182 | INFO     | nexus_trading.main   | Test 8: Sentiment analysis...
+2025-07-04 13:11:14,065 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:11:14,962 | INFO     | nexus_trading.main   | Sentiment for RELIANCE: 0.500 (no_news)
+2025-07-04 13:11:15,825 | INFO     | nexus_trading.main   | Sentiment for HDFCBANK: 0.500 (no_news)
+2025-07-04 13:11:15,825 | INFO     | nexus_trading.main   | Test 9: Enhanced sentiment...
+2025-07-04 13:11:16,735 | INFO     | nexus_trading.main   | Enhanced sentiment RELIANCE: 0.500
+2025-07-04 13:11:16,740 | INFO     | nexus_trading.main   | Trend RELIANCE: unknown
+2025-07-04 13:11:17,601 | INFO     | nexus_trading.main   | Enhanced sentiment HDFCBANK: 0.500
+2025-07-04 13:11:17,602 | INFO     | nexus_trading.main   | Trend HDFCBANK: unknown
+2025-07-04 13:11:17,606 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:11:17,628 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:11:17,629 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:11:17,629 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 13:11:17,630 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:11:17,630 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:11:17,631 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:26:31,109 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:26:31,109 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STARTING
+2025-07-04 13:26:31,110 | INFO     | nexus_trading.main   | Mode: test
+2025-07-04 13:26:31,110 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:26:31,110 | INFO     | nexus_trading.main   | Starting TEST mode...
+2025-07-04 13:26:31,110 | INFO     | nexus_trading.main   | Test 1: Environment validation...
+2025-07-04 13:26:32,193 | INFO     | nexus_trading.main   | pandas: 2.3.0
+2025-07-04 13:26:32,194 | INFO     | nexus_trading.main   | numpy: 2.3.1
+2025-07-04 13:26:32,600 | WARNING  | nexus_trading.main   | pandas_ta not available - will use fallback calculations
+2025-07-04 13:26:32,600 | INFO     | nexus_trading.main   | Test 2: Database connection...
+2025-07-04 13:26:32,853 | INFO     | database.enhanced_database_manager | Database connection pool initialized
+2025-07-04 13:26:32,879 | INFO     | nexus_trading.main   | Database connection successful
+2025-07-04 13:26:32,879 | INFO     | nexus_trading.main   | System health: {'total_symbols': 12, 'available_quarters': 2}
+2025-07-04 13:26:32,880 | INFO     | nexus_trading.main   | Test 3: Existing tables access...
+2025-07-04 13:26:32,883 | INFO     | nexus_trading.main   | Found 5 symbols in stocks_categories_table
+2025-07-04 13:26:32,883 | INFO     | nexus_trading.main   | Sample symbol: RELIANCE - Reliance Industries Ltd
+2025-07-04 13:26:32,885 | INFO     | nexus_trading.main   | Found 2 historical data quarters
+2025-07-04 13:26:32,885 | INFO     | nexus_trading.main   | Test 4: Agent tables...
+2025-07-04 13:26:33,418 | INFO     | database.schema_creator | Created 4/4 essential tables
+2025-07-04 13:26:33,418 | INFO     | nexus_trading.main   | Essential agent tables created/verified
+2025-07-04 13:26:33,498 | INFO     | database.schema_creator | Basic system configuration initialized
+2025-07-04 13:26:33,499 | INFO     | nexus_trading.main   | Basic system configuration initialized
+2025-07-04 13:26:33,572 | INFO     | nexus_trading.main   | All essential tables verified
+2025-07-04 13:26:33,572 | INFO     | nexus_trading.main   | Test 5: Sentiment tables...
+2025-07-04 13:26:33,575 | INFO     | database.enhanced_database_manager | Sentiment tables created successfully
+2025-07-04 13:26:33,575 | INFO     | nexus_trading.main   | Sentiment tables created successfully
+2025-07-04 13:26:33,575 | INFO     | nexus_trading.main   | Test 6: Data pipeline...
+2025-07-04 13:26:33,586 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:26:33,589 | INFO     | utils.data_updater   | Successfully updated sample data for RELIANCE
+2025-07-04 13:26:33,592 | INFO     | database.enhanced_database_manager | Created/verified table: historical_data_3m_2025_q3
+2025-07-04 13:26:33,594 | INFO     | utils.data_updater   | Successfully updated sample data for TCS
+2025-07-04 13:26:33,594 | INFO     | nexus_trading.main   | Data pipeline test successful: 2 symbols updated
+2025-07-04 13:26:33,594 | INFO     | nexus_trading.main   | Test 7: Technical analysis...
+2025-07-04 13:26:34,333 | INFO     | nexus_trading.main   | Testing signal generation with symbols: ['RELIANCE', 'HDFCBANK', 'ICICIBANK']
+2025-07-04 13:26:35,150 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+Traceback (most recent call last):
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 109, in analyze_symbol
+    analysis = self._generate_technical_signals(symbol, df, indicators)
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 782, in _generate_technical_signals
+    stop_loss, target_price = self._calculate_price_targets(
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        entry_price, indicators, volatility_category
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 966, in _calculate_price_targets
+    atr_multiplier = config.get_stop_loss_multiplier(volatility_category)
+  File "C:\Agents_Intraday\nexus_trading\config.py", line 508, in get_stop_loss_multiplier
+    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,156 | WARNING  | SignalAgent          | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,224 | INFO     | TechnicalAgent       | No historical data for HDFCBANK, using synthetic data for testing
+2025-07-04 13:26:35,253 | ERROR    | TechnicalAgent       | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+Traceback (most recent call last):
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 109, in analyze_symbol
+    analysis = self._generate_technical_signals(symbol, df, indicators)
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 782, in _generate_technical_signals
+    stop_loss, target_price = self._calculate_price_targets(
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        entry_price, indicators, volatility_category
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 966, in _calculate_price_targets
+    atr_multiplier = config.get_stop_loss_multiplier(volatility_category)
+  File "C:\Agents_Intraday\nexus_trading\config.py", line 508, in get_stop_loss_multiplier
+    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,256 | WARNING  | SignalAgent          | Technical analysis failed for HDFCBANK: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,325 | INFO     | TechnicalAgent       | No historical data for ICICIBANK, using synthetic data for testing
+2025-07-04 13:26:35,345 | ERROR    | TechnicalAgent       | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+Traceback (most recent call last):
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 109, in analyze_symbol
+    analysis = self._generate_technical_signals(symbol, df, indicators)
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 782, in _generate_technical_signals
+    stop_loss, target_price = self._calculate_price_targets(
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        entry_price, indicators, volatility_category
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 966, in _calculate_price_targets
+    atr_multiplier = config.get_stop_loss_multiplier(volatility_category)
+  File "C:\Agents_Intraday\nexus_trading\config.py", line 508, in get_stop_loss_multiplier
+    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,349 | WARNING  | SignalAgent          | Technical analysis failed for ICICIBANK: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,349 | INFO     | nexus_trading.main   | Trying direct technical analysis...
+2025-07-04 13:26:35,435 | ERROR    | TechnicalAgent       | Technical analysis failed for RELIANCE: 'float' object has no attribute 'get'
+Traceback (most recent call last):
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 109, in analyze_symbol
+    analysis = self._generate_technical_signals(symbol, df, indicators)
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 782, in _generate_technical_signals
+    stop_loss, target_price = self._calculate_price_targets(
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        entry_price, indicators, volatility_category
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Agents_Intraday\nexus_trading\agents\technical_agent.py", line 966, in _calculate_price_targets
+    atr_multiplier = config.get_stop_loss_multiplier(volatility_category)
+  File "C:\Agents_Intraday\nexus_trading\config.py", line 508, in get_stop_loss_multiplier
+    return ATR_STOP_MULTIPLIER.get(volatility_category, 2.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'float' object has no attribute 'get'
+2025-07-04 13:26:35,437 | WARNING  | nexus_trading.main   | No signals generated
+2025-07-04 13:26:35,438 | INFO     | nexus_trading.main   | Test 8: Sentiment analysis...
+2025-07-04 13:26:36,339 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:26:37,308 | INFO     | nexus_trading.main   | Sentiment for RELIANCE: 0.500 (no_news)
+2025-07-04 13:26:38,157 | INFO     | nexus_trading.main   | Sentiment for HDFCBANK: 0.500 (no_news)
+2025-07-04 13:26:38,157 | INFO     | nexus_trading.main   | Test 9: Enhanced sentiment...
+2025-07-04 13:26:39,071 | INFO     | nexus_trading.main   | Enhanced sentiment RELIANCE: 0.500
+2025-07-04 13:26:39,075 | INFO     | nexus_trading.main   | Trend RELIANCE: unknown
+2025-07-04 13:26:40,386 | INFO     | nexus_trading.main   | Enhanced sentiment HDFCBANK: 0.500
+2025-07-04 13:26:40,387 | INFO     | nexus_trading.main   | Trend HDFCBANK: unknown
+2025-07-04 13:26:40,390 | INFO     | nexus_trading.main   | Market sentiment: 0.500
+2025-07-04 13:26:40,413 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:26:40,413 | INFO     | nexus_trading.main   | System shutdown completed
+2025-07-04 13:26:40,414 | INFO     | nexus_trading.main   | NEXUS TRADING SYSTEM STOPPING
+2025-07-04 13:26:40,414 | INFO     | nexus_trading.main   | ==================================================
+2025-07-04 13:26:40,415 | INFO     | utils.performance_monitor | Performance monitoring stopped
+2025-07-04 13:26:40,415 | INFO     | nexus_trading.main   | System shutdown completed

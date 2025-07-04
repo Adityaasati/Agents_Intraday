@@ -59,7 +59,7 @@ class TechnicalAgent(BaseAgent):
     
     @handle_agent_errors(default_return={'error': 'analysis_failed'})
     def analyze_symbol(self, symbol: str, timeframe: str = '5m', 
-                      lookback_days: int = 30) -> Dict:
+                  lookback_days: int = 30) -> Dict:
         """Complete technical analysis for a symbol with robust data handling"""
         
         try:
@@ -67,21 +67,21 @@ class TechnicalAgent(BaseAgent):
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=lookback_days)
             
+            # Debug: Log the method call
+            self.logger.debug(f"Getting historical data for {symbol}")
             df = self.db_manager.get_historical_data(symbol, start_date, end_date)
             
             # Handle insufficient data more gracefully
             if df.empty:
                 self.logger.info(f"No historical data for {symbol}, using synthetic data for testing")
-                df = self._create_test_data(symbol, 100)  # Increase default to 100 points
-            elif len(df) < 10:  # Very low threshold
+                df = self._create_test_data(symbol, 100)
+            elif len(df) < 10:
                 self.logger.warning(f"Insufficient data for {symbol}: {len(df)} records, supplementing with synthetic data")
-                # Supplement with synthetic data
                 synthetic_df = self._create_test_data(symbol, 50)
-                # Use the most recent date from real data
                 if not df.empty:
                     last_date = df['date'].max()
                     synthetic_df['date'] = pd.date_range(start=last_date + timedelta(minutes=5), 
-                                                       periods=50, freq='5min')
+                                                    periods=50, freq='5min')
                 df = pd.concat([df, synthetic_df], ignore_index=True)
                 self.logger.info(f"Supplemented {symbol} data: now {len(df)} records")
             
@@ -91,12 +91,21 @@ class TechnicalAgent(BaseAgent):
                 return {'symbol': symbol, 'error': 'invalid_data_after_cleaning'}
             
             # Calculate all technical indicators
+            self.logger.debug(f"Calculating indicators for {symbol}")
             indicators = self._calculate_all_indicators(df)
+            
+            # DEBUG: Check what indicators is
+            self.logger.debug(f"Indicators type: {type(indicators)}, value: {indicators}")
+            
+            if not isinstance(indicators, dict):
+                self.logger.error(f"Indicators is not a dict! Type: {type(indicators)}")
+                return {'symbol': symbol, 'error': 'invalid_indicators_type'}
             
             if not indicators or not any(v is not None for v in indicators.values()):
                 return {'symbol': symbol, 'error': 'calculation_failed', 'data_points': len(df)}
             
             # Generate signals and analysis
+            self.logger.debug(f"Generating signals for {symbol}")
             analysis = self._generate_technical_signals(symbol, df, indicators)
             
             # Store technical indicators in database (with error handling)
@@ -104,12 +113,11 @@ class TechnicalAgent(BaseAgent):
                 self._store_technical_analysis(symbol, df, indicators, timeframe)
             except Exception as storage_error:
                 self.logger.warning(f"Failed to store technical analysis for {symbol}: {storage_error}")
-                # Continue without failing the entire analysis
             
             return analysis
             
         except Exception as e:
-            self.logger.error(f"Technical analysis failed for {symbol}: {e}")
+            self.logger.error(f"Technical analysis failed for {symbol}: {e}", exc_info=True)
             return {'symbol': symbol, 'error': str(e)}
     
     def analyze_with_optimization(self, symbol: str, timeframe: str = '5m', lookback_days: int = 30) -> Dict:
@@ -122,7 +130,9 @@ class TechnicalAgent(BaseAgent):
             # Get historical data for optimization
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=lookback_days)
-            df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            # df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            df = self.db_manager.get_historical_data(symbol, limit=1000)  # Adjust limit as needed
+            
             
             if df.empty or len(df) < 30:
                 return analysis
@@ -174,7 +184,8 @@ class TechnicalAgent(BaseAgent):
                 try:
                     end_date = datetime.now(self.ist)
                     start_date = end_date - timedelta(days=30)
-                    df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+                    # df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+                    df = self.db_manager.get_historical_data(symbol, limit=1000)  # Adjust limit as needed
                     
                     if not df.empty and len(df) >= 20:
                         regime_data = regime_detector.detect_market_regime(df)
@@ -296,13 +307,7 @@ class TechnicalAgent(BaseAgent):
         self.logger.info(f"Analyzed {processed} symbols")
         return results
     
-    def _calculate_all_indicators(self, df: pd.DataFrame) -> Dict:
-        """Calculate all technical indicators using pandas_ta or manual methods"""
-        
-        if self.use_pandas_ta:
-            return self._calculate_indicators_pandas_ta(df)
-        else:
-            return self._calculate_indicators_manual(df)
+    
     
     def _calculate_indicators_pandas_ta(self, df: pd.DataFrame) -> Dict:
         """Calculate indicators using pandas_ta library"""
@@ -323,21 +328,28 @@ class TechnicalAgent(BaseAgent):
             # Extract latest values
             latest = df.iloc[-1]
             
+            # Helper function to safely get value
+            def safe_get(key, default=None):
+                try:
+                    return latest[key] if key in latest.index else default
+                except:
+                    return default
+            
             indicators = {
-                'rsi_14': latest.get('RSI_14'),
-                'rsi_21': latest.get('RSI_21'),
-                'ema_20': latest.get('EMA_20'),
-                'ema_50': latest.get('EMA_50'),
-                'sma_20': latest.get('SMA_20'),
-                'sma_50': latest.get('SMA_50'),
-                'macd_line': latest.get('MACD_12_26_9'),
-                'macd_signal': latest.get('MACDs_12_26_9'),
-                'macd_histogram': latest.get('MACDh_12_26_9'),
-                'bb_upper': latest.get('BBU_20_2.0'),
-                'bb_middle': latest.get('BBM_20_2.0'),
-                'bb_lower': latest.get('BBL_20_2.0'),
-                'atr_14': latest.get('ATR_14'),
-                'volume_sma_20': latest.get('SMA_20_volume'),
+                'rsi_14': safe_get('RSI_14'),
+                'rsi_21': safe_get('RSI_21'),
+                'ema_20': safe_get('EMA_20'),
+                'ema_50': safe_get('EMA_50'),
+                'sma_20': safe_get('SMA_20'),
+                'sma_50': safe_get('SMA_50'),
+                'macd_line': safe_get('MACD_12_26_9'),
+                'macd_signal': safe_get('MACDs_12_26_9'),
+                'macd_histogram': safe_get('MACDh_12_26_9'),
+                'bb_upper': safe_get('BBU_20_2.0'),
+                'bb_middle': safe_get('BBM_20_2.0'),
+                'bb_lower': safe_get('BBL_20_2.0'),
+                'atr_14': safe_get('ATR_14'),
+                'volume_sma_20': safe_get('SMA_20_volume'),
                 'close_price': latest['close'],
                 'volume': latest['volume'],
                 'date': latest['date']
@@ -351,6 +363,9 @@ class TechnicalAgent(BaseAgent):
         except Exception as e:
             self.logger.warning(f"pandas_ta calculation failed: {e}")
             return self._calculate_indicators_manual(df)
+    
+    
+    
     
     def _calculate_indicators_manual(self, df: pd.DataFrame) -> Dict:
         """Manual calculation of technical indicators with robust error handling and type safety"""
@@ -464,6 +479,16 @@ class TechnicalAgent(BaseAgent):
         except Exception as e:
             self.logger.error(f"Manual calculation failed: {e}")
             return {}
+        
+        
+    
+    def _calculate_all_indicators(self, df: pd.DataFrame) -> Dict:
+        """Calculate all technical indicators using pandas_ta or manual methods"""
+        
+        if self.use_pandas_ta:
+            return self._calculate_indicators_pandas_ta(df)
+        else:
+            return self._calculate_indicators_manual(df)
     
     def _safe_get_last_value(self, series):
         """Safely get the last value from a pandas Series, converting to Python type"""
@@ -712,11 +737,20 @@ class TechnicalAgent(BaseAgent):
         
         return derived
     
+    
+    
     def _generate_technical_signals(self, symbol: str, df: pd.DataFrame, indicators: Dict) -> Dict:
         """Generate buy/sell signals based on technical indicators"""
         
         # Get fundamental data for category-based adjustments
         fundamental_data = self.db_manager.get_fundamental_data(symbol)
+        if not isinstance(fundamental_data, dict) or not fundamental_data:
+            self.logger.warning(f"No fundamental data for {symbol}, using defaults")
+            fundamental_data = {
+                'volatility_category': 'Medium',
+                'category': 'B',
+                'market_cap_type': 'Mid_Cap'
+            }
         volatility_category = fundamental_data.get('volatility_category', 'Medium')
         category = fundamental_data.get('category', 'B')
         market_cap_type = fundamental_data.get('market_cap_type', 'Mid_Cap')

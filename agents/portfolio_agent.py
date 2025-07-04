@@ -1018,7 +1018,7 @@ class PortfolioAgent(BaseAgent):
             returns_data = {}
             
             for symbol in symbols:
-                df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+                df = self.db_manager.get_historical_data(symbol, start_date, end_date,limit=1000)
                 if not df.empty and len(df) > 20:
                     df['returns'] = df['close'].pct_change().dropna()
                     returns_data[symbol] = df['returns'].values

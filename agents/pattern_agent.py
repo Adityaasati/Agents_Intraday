@@ -50,7 +50,8 @@ class PatternAgent:
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=lookback_days)
             
-            df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            # df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            df = self.db_manager.get_historical_data(symbol, limit=1000)  # Adjust limit as needed
             
             if df.empty or len(df) < 30:
                 return {'symbol': symbol, 'patterns': [], 'status': 'insufficient_data'}

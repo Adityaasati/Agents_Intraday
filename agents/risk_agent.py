@@ -182,7 +182,7 @@ class RiskAgent(BaseAgent):
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=30)
             
-            df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            df = self.db_manager.get_historical_data(symbol, start_date, end_date, limit=1000)
             
             if df.empty or len(df) < 14:
                 # Fallback to percentage method
@@ -469,8 +469,8 @@ class RiskAgent(BaseAgent):
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=days)
             
-            df1 = self.db_manager.get_historical_data(symbol1, start_date, end_date)
-            df2 = self.db_manager.get_historical_data(symbol2, start_date, end_date)
+            df1 = self.db_manager.get_historical_data(symbol1, start_date, end_date, limit=1000)
+            df2 = self.db_manager.get_historical_data(symbol2, start_date, end_date, limit=1000)
             
             if df1.empty or df2.empty or len(df1) < 10 or len(df2) < 10:
                 return 0.0
@@ -689,7 +689,7 @@ class RiskAgent(BaseAgent):
             
             returns_data = {}
             for symbol in symbols:
-                df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+                df = self.db_manager.get_historical_data(symbol, start_date, end_date, limit=1000)
                 if not df.empty and len(df) > 20:
                     df['returns'] = df['close'].pct_change().dropna()
                     returns_data[symbol] = df['returns'].std() * (252 ** 0.5)  # Annualized volatility
@@ -774,7 +774,7 @@ class RiskAgent(BaseAgent):
             # Get recent data for ATR calculation
             end_date = datetime.now(self.ist)
             start_date = end_date - timedelta(days=30)
-            df = self.db_manager.get_historical_data(symbol, start_date, end_date)
+            df = self.db_manager.get_historical_data(symbol, start_date, end_date, limit=1000)
             
             if df.empty or len(df) < config.ATR_CALCULATION_PERIODS:
                 # Fallback to percentage stop
