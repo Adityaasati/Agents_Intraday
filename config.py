@@ -145,7 +145,7 @@ LIVE_TRADING_APPROVED_SYMBOLS = [
 # Historical Data Download Settings
 DOWNLOAD_FREQUENCY = os.getenv('DOWNLOAD_FREQUENCY', 'once')  # once/5min/15min/60min
 HISTORICAL_DATA_INTERVAL = os.getenv('HISTORICAL_DATA_INTERVAL', '5minute')  # 5minute/15minute/60minute/180minute  
-DOWNLOAD_START_DATE = os.getenv('DOWNLOAD_START_DATE', '2020-01-01')  # yyyy-mm-dd
+DOWNLOAD_START_DATE = os.getenv('DOWNLOAD_START_DATE', '25-01-01')  # yyyy-mm-dd
 DOWNLOAD_END_DATE = os.getenv('DOWNLOAD_END_DATE', 'today')  # today or yyyy-mm-dd
 
 # Market Hours Configuration  

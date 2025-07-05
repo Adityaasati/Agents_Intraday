@@ -85,18 +85,25 @@ def delete_historical_tables(confirm=False):
     if not confirm:
         print("❌ This will delete ALL historical data tables!")
         print("❌ This action cannot be undone!")
+        print("❌ Make sure you have backups if needed!")
+        print()
         response = input("Type 'DELETE ALL TABLES' to confirm: ")
         if response != 'DELETE ALL TABLES':
-            print("❌ Deletion cancelled")
+            print("Operation cancelled.")
             return False
     
     tables = find_historical_tables()
     
     if not tables:
-        print("✅ No historical data tables found")
+        print("No historical data tables found.")
         return True
     
-    print(f"🗑️ Deleting {len(tables)} historical data tables...")
+    print(f"\nFound {len(tables)} historical data tables:")
+    for table in tables:
+        data_info = check_table_data(table)
+        print(f"  - {table}: {data_info.get('total_count', 0)} records")
+    
+    print("\nDeleting tables...")
     
     deleted_count = 0
     with get_db_connection() as conn:
@@ -104,98 +111,95 @@ def delete_historical_tables(confirm=False):
         
         for table in tables:
             try:
-                print(f"   Deleting {table}...")
                 cursor.execute(f"DROP TABLE IF EXISTS {table} CASCADE")
+                conn.commit()
+                print(f"  ✅ Deleted: {table}")
                 deleted_count += 1
             except Exception as e:
-                print(f"   ❌ Failed to delete {table}: {e}")
-        
-        conn.commit()
+                print(f"  ❌ Failed to delete {table}: {e}")
+                conn.rollback()
     
-    print(f"✅ Deleted {deleted_count}/{len(tables)} tables")
+    print(f"\nDeleted {deleted_count}/{len(tables)} tables.")
     return deleted_count == len(tables)
 
-def verify_clean_slate():
-    """Verify all historical tables are gone"""
+def delete_specific_table(table_name):
+    """Delete a specific table"""
     
-    tables = find_historical_tables()
+    print(f"Checking table: {table_name}")
     
-    if not tables:
-        print("✅ Clean slate confirmed - no historical data tables exist")
-        return True
-    else:
-        print(f"⚠️ Warning: {len(tables)} historical tables still exist: {tables}")
-        return False
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        
+        # Check if table exists
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = %s
+            )
+        """, (table_name,))
+        
+        exists = cursor.fetchone()[0]
+        
+        if not exists:
+            print(f"Table {table_name} does not exist.")
+            return True
+        
+        # Get table info
+        data_info = check_table_data(table_name)
+        print(f"Table contains {data_info.get('total_count', 0)} records")
+        
+        # Delete the table
+        try:
+            cursor.execute(f"DROP TABLE {table_name} CASCADE")
+            conn.commit()
+            print(f"✅ Successfully deleted: {table_name}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to delete {table_name}: {e}")
+            conn.rollback()
+            return False
 
 def main():
-    """Main function with safety checks"""
+    """Main execution"""
     
     print("=" * 60)
-    print("DELETE SYNTHETIC DATA TABLES")
+    print("SYNTHETIC DATA TABLE DELETION")
     print("=" * 60)
     
-    try:
-        # Step 1: Find existing tables
-        print("1. Checking existing historical data tables...")
+    import argparse
+    parser = argparse.ArgumentParser(description='Delete synthetic data tables')
+    parser.add_argument('--all', action='store_true', help='Delete ALL historical tables')
+    parser.add_argument('--table', help='Delete specific table')
+    parser.add_argument('--list', action='store_true', help='List all historical tables')
+    parser.add_argument('--check', help='Check data in specific table')
+    
+    args = parser.parse_args()
+    
+    if args.list:
         tables = find_historical_tables()
-        
-        if not tables:
-            print("   ✅ No historical data tables found")
-            print("   ✅ Ready for fresh real data download")
-            return
-        
-        print(f"   Found {len(tables)} historical data tables:")
+        print(f"Found {len(tables)} historical tables:")
         for table in tables:
-            print(f"     - {table}")
-        
-        # Step 2: Analyze data in tables
-        print("\n2. Analyzing data in tables...")
-        
-        for table in tables[:3]:  # Check first 3 tables
-            print(f"\n   Checking {table}:")
-            data_info = check_table_data(table)
-            
-            if 'error' in data_info:
-                print(f"     ❌ Error: {data_info['error']}")
-            else:
-                print(f"     📊 Total records: {data_info['total_count']:,}")
-                print(f"     📅 Recent records (7 days): {data_info['recent_count']:,}")
-                
-                if data_info['sample_data']:
-                    print(f"     📋 Sample data:")
-                    for row in data_info['sample_data'][:2]:
-                        symbol, date, close, volume = row
-                        print(f"        {symbol}: {date} | Close: {close} | Volume: {volume:,}")
-        
-        # Step 3: Confirm deletion
-        print(f"\n3. Deletion options:")
-        print(f"   This will delete ALL {len(tables)} historical data tables")
-        print(f"   After deletion, run historical data download to get real data")
-        print(f"   Tables will be recreated automatically with real data")
-        
-        # Step 4: Delete tables
-        print(f"\n4. Deleting tables...")
-        success = delete_historical_tables()
-        
-        if success:
-            # Step 5: Verify clean slate
-            print(f"\n5. Verifying clean slate...")
-            verify_clean_slate()
-            
-            print(f"\n" + "=" * 60)
-            print("✅ DELETION COMPLETED SUCCESSFULLY")
-            print("=" * 60)
-            print("📋 NEXT STEPS:")
-            print("1. Set DOWNLOAD_FREQUENCY=once in .env")
-            print("2. Add Kite API credentials to .env") 
-            print("3. Run: python main.py --mode live_data")
-            print("4. This will download real historical data and recreate tables")
-        else:
-            print(f"\n❌ DELETION FAILED")
-            print("Some tables could not be deleted. Check the errors above.")
+            print(f"  - {table}")
     
-    except Exception as e:
-        print(f"❌ Error: {e}")
+    elif args.check:
+        info = check_table_data(args.check)
+        print(f"Table: {args.check}")
+        print(f"Total records: {info.get('total_count', 0)}")
+        print(f"Recent records: {info.get('recent_count', 0)}")
+        print("Sample data:")
+        for row in info.get('sample_data', []):
+            print(f"  {row}")
+    
+    elif args.table:
+        delete_specific_table(args.table)
+    
+    elif args.all:
+        delete_historical_tables()
+    
+    else:
+        # Default: Delete just the 2025 Q3 table
+        print("Deleting synthetic data table: historical_data_3m_2025_q3")
+        delete_specific_table('historical_data_3m_2025_q3')
 
 if __name__ == "__main__":
     main()
