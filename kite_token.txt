@@ -1,0 +1,5 @@
+{
+  "access_token": "w7Eo9mQj2Ib5XHOb3eK6bE9Y8ujcrH3G",
+  "date": "2025-07-05",
+  "user_id": "XM7860"
+}
