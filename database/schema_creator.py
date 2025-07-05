@@ -138,6 +138,116 @@ class SchemaCreator:
             self.logger.error(f"Failed to create table {table_name}: {e}")
             return False
     
+    
+    # Add this method to database/schema_creator.py class
+
+    # Add this method to database/schema_creator.py class
+
+    def add_paper_trading_columns(self) -> bool:
+        """Add missing columns for paper trading functionality"""
+        
+        try:
+            import psycopg2
+            from database.connection_config import get_connection_params
+            
+            # Use connection params from .env (including your port 5435)
+            connection_params = get_connection_params()
+            
+            # SQL commands to add missing columns
+            alter_commands = [
+                # Add executed_at column to signals table
+                """
+                ALTER TABLE agent_live_signals 
+                ADD COLUMN IF NOT EXISTS executed_at TIMESTAMP WITHOUT TIME ZONE;
+                """,
+                
+                # Add paper trading columns to positions table
+                """
+                ALTER TABLE agent_portfolio_positions 
+                ADD COLUMN IF NOT EXISTS execution_type VARCHAR(20) DEFAULT 'PAPER',
+                ADD COLUMN IF NOT EXISTS commission_paid DECIMAL(8,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS slippage_amount DECIMAL(8,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS max_gain DECIMAL(5,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS max_loss DECIMAL(5,2) DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS holding_period_minutes INTEGER DEFAULT 0,
+                ADD COLUMN IF NOT EXISTS current_stop_loss DECIMAL(10,2),
+                ADD COLUMN IF NOT EXISTS target_price DECIMAL(10,2);
+                """,
+                
+                # Add indexes for better performance
+                """
+                CREATE INDEX IF NOT EXISTS idx_live_signals_executed_at 
+                ON agent_live_signals(executed_at);
+                """,
+                
+                """
+                CREATE INDEX IF NOT EXISTS idx_portfolio_positions_execution_type 
+                ON agent_portfolio_positions(execution_type);
+                """
+            ]
+            
+            with psycopg2.connect(**connection_params) as conn:
+                with conn.cursor() as cursor:
+                    for command in alter_commands:
+                        cursor.execute(command)
+                        
+            self.logger.info("Paper trading columns added successfully")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to add paper trading columns: {e}")
+            return False
+
+    # Add this method to verify the changes
+    def verify_paper_trading_columns(self) -> Dict[str, bool]:
+        """Verify paper trading columns exist"""
+        
+        try:
+            import psycopg2
+            from database.connection_config import get_connection_params
+            
+            # Use connection params from .env
+            connection_params = get_connection_params()
+            
+            checks = {
+                'executed_at_column': False,
+                'execution_type_column': False,
+                'paper_trading_indexes': False
+            }
+            
+            with psycopg2.connect(**connection_params) as conn:
+                with conn.cursor() as cursor:
+                    # Check executed_at column
+                    cursor.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = 'agent_live_signals' 
+                        AND column_name = 'executed_at'
+                    """)
+                    checks['executed_at_column'] = cursor.fetchone() is not None
+                    
+                    # Check execution_type column
+                    cursor.execute("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name = 'agent_portfolio_positions' 
+                        AND column_name = 'execution_type'
+                    """)
+                    checks['execution_type_column'] = cursor.fetchone() is not None
+                    
+                    # Check indexes
+                    cursor.execute("""
+                        SELECT indexname FROM pg_indexes 
+                        WHERE tablename = 'agent_live_signals' 
+                        AND indexname = 'idx_live_signals_executed_at'
+                    """)
+                    checks['paper_trading_indexes'] = cursor.fetchone() is not None
+            
+            return checks
+            
+        except Exception as e:
+            self.logger.error(f"Failed to verify paper trading columns: {e}")
+            return {k: False for k in ['executed_at_column', 'execution_type_column', 'paper_trading_indexes']}
+    
+    
     def _get_symbol_integration_schema(self) -> str:
         """Schema for agent_symbol_integration table"""
         return """

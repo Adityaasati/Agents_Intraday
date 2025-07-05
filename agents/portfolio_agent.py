@@ -1390,6 +1390,45 @@ class PortfolioAgent(BaseAgent):
             self.logger.error(f"Position update failed: {e}")
             return {'error': str(e)}
     
+    
+
+    def _get_all_paper_positions(self) -> List[Dict]:
+        """Get all paper positions (both open and closed) for portfolio summary"""
+        
+        try:
+            query = """
+                SELECT * FROM agent_portfolio_positions 
+                WHERE execution_type = 'PAPER' OR execution_type IS NULL
+                ORDER BY entry_time DESC
+            """
+            
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query)
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    
+                    positions = []
+                    for row in rows:
+                        position = dict(zip(columns, row))
+                        
+                        # Add calculated fields consistent with existing patterns
+                        if position.get('status') == 'OPEN' and position.get('current_price'):
+                            entry_price = position.get('entry_price', 0)
+                            current_price = position.get('current_price', 0)
+                            quantity = position.get('quantity', 0)
+                            
+                            position['unrealized_pnl'] = (current_price - entry_price) * quantity
+                            position['unrealized_pnl_percent'] = ((current_price / entry_price) - 1) * 100 if entry_price > 0 else 0
+                        
+                        positions.append(position)
+                    
+                    return positions
+                    
+        except Exception as e:
+            self.logger.error(f"Failed to get all paper positions: {e}")
+            return []
+    
     def get_paper_portfolio_summary(self) -> Dict:
         """Get paper trading portfolio summary"""
         
@@ -1492,9 +1531,15 @@ class PortfolioAgent(BaseAgent):
         """Get current price for symbol (simulated)"""
         try:
             # Get latest price from historical data
-            query = """
-                SELECT close FROM historical_data_3m_2025_q3 
-                WHERE symbol = %s ORDER BY timestamp DESC LIMIT 1
+            # Get current quarter table name dynamically
+            from datetime import datetime
+            now = datetime.now()
+            quarter = (now.month - 1) // 3 + 1
+            table_name = f"historical_data_3m_{now.year}_q{quarter}"
+
+            query = f"""
+                SELECT close FROM {table_name} 
+                WHERE symbol = %s ORDER BY date DESC LIMIT 1
             """
             
             with self.db_manager.get_connection() as conn:

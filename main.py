@@ -44,7 +44,6 @@ USAGE:
 - python main.py --mode batch
 - python main.py --mode optimize
 """
-import time
 import os
 from contextlib import contextmanager
 import logging
@@ -55,6 +54,7 @@ from pathlib import Path
 from datetime import datetime
 import traceback
 import time
+import config
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict
 try:

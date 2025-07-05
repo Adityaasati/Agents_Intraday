@@ -163,7 +163,7 @@ def get_connection_params() -> Dict[str, str]:
     """
     return {
         'host': os.getenv('DATABASE_HOST', 'localhost'),
-        'port': os.getenv('DATABASE_PORT', '5432'),
+        'port': os.getenv('DATABASE_PORT', '5435'),
         'database': os.getenv('DATABASE_NAME'),
         'user': os.getenv('DATABASE_USER'),
         'password': os.getenv('DATABASE_PASSWORD')

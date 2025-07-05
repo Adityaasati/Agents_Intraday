@@ -793,6 +793,7 @@ class TechnicalAgent(BaseAgent):
             'technical_score': round(technical_score, 3),
             'fundamental_score': round(fundamental_score, 3),  # Placeholder
             'sentiment_score': round(sentiment_score, 3),      # Placeholder
+            'overall_score': round(technical_score, 3), 
             'overall_confidence': round(overall_confidence, 3),
             'buy_signal': buy_signal,
             'sell_signal': sell_signal,
