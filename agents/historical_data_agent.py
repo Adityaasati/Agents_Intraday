@@ -90,7 +90,7 @@ class HistoricalDataAgent(BaseAgent):
         """Main download execution"""
         try:
             # Check if data is already current
-            if self.download_frequency != 'once' and self.is_data_current():
+            if self.is_data_current():
                 self.logger.info("Historical data is current, skipping download")
                 return True
             

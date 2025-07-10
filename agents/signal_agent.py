@@ -660,221 +660,221 @@ class SignalAgent(BaseAgent):
             return {'error': str(e)}
 
     
-    # def execute_live_signals(self, signals: List[Dict] = None) -> Dict:
-    #     """Execute approved signals with trade mode control"""
+    def execute_live_signals(self, signals: List[Dict] = None) -> Dict:
+        """Execute approved signals with trade mode control"""
         
-    #     try:
-    #         import config
+        try:
+            import config
             
-    #         if not config.LIVE_TRADING_MODE:
-    #             return self.auto_execute_signals(signals)
+            if not config.LIVE_TRADING_MODE:
+                return self.auto_execute_signals(signals)
             
-    #         if not self._is_live_trading_allowed():
-    #             return {'status': 'disabled', 'reason': 'Live trading conditions not met'}
+            if not self._is_live_trading_allowed():
+                return {'status': 'disabled', 'reason': 'Live trading conditions not met'}
             
-    #         # Get signals to execute
-    #         if signals is None:
-    #             signals = self.get_live_executable_signals()
+            # Get signals to execute
+            if signals is None:
+                signals = self.get_live_executable_signals()
             
-    #         from agents.portfolio_agent import PortfolioAgent
-    #         portfolio_agent = PortfolioAgent(self.db_manager)
+            from agents.portfolio_agent import PortfolioAgent
+            portfolio_agent = PortfolioAgent(self.db_manager)
             
-    #         executed_count = 0
-    #         signal_only_count = 0
-    #         execution_results = []
+            executed_count = 0
+            signal_only_count = 0
+            execution_results = []
             
-    #         for signal in signals:
-    #             if self._validate_live_execution_criteria(signal):
-    #                 result = portfolio_agent.execute_live_trade(signal)
+            for signal in signals:
+                if self._validate_live_execution_criteria(signal):
+                    result = portfolio_agent.execute_live_trade(signal)
                     
-    #                 if result.get('status') == 'live_executed':
-    #                     executed_count += 1
-    #                     execution_results.append({
-    #                         'symbol': signal.get('symbol'),
-    #                         'status': 'live_executed',
-    #                         'order_id': result.get('order_id'),
-    #                         'execution_type': 'LIVE'
-    #                     })
+                    if result.get('status') == 'live_executed':
+                        executed_count += 1
+                        execution_results.append({
+                            'symbol': signal.get('symbol'),
+                            'status': 'live_executed',
+                            'order_id': result.get('order_id'),
+                            'execution_type': 'LIVE'
+                        })
                         
-    #                     # Mark signal as executed
-    #                     self._mark_signal_executed(signal.get('id'), 'LIVE')
+                        # Mark signal as executed
+                        self._mark_signal_executed(signal.get('id'), 'LIVE')
                     
-    #                 elif result.get('status') == 'signal_only':
-    #                     signal_only_count += 1
-    #                     execution_results.append({
-    #                         'symbol': signal.get('symbol'),
-    #                         'status': 'signal_generated',
-    #                         'confidence': result.get('signal_confidence'),
-    #                         'would_execute': result.get('would_execute'),
-    #                         'reason': 'TRADE_MODE disabled',
-    #                         'execution_type': 'SIGNAL_ONLY'
-    #                     })
+                    elif result.get('status') == 'signal_only':
+                        signal_only_count += 1
+                        execution_results.append({
+                            'symbol': signal.get('symbol'),
+                            'status': 'signal_generated',
+                            'confidence': result.get('signal_confidence'),
+                            'would_execute': result.get('would_execute'),
+                            'reason': 'TRADE_MODE disabled',
+                            'execution_type': 'SIGNAL_ONLY'
+                        })
                         
-    #                     # Mark signal as generated (not executed)
-    #                     self._mark_signal_executed(signal.get('id'), 'SIGNAL_ONLY')
+                        # Mark signal as generated (not executed)
+                        self._mark_signal_executed(signal.get('id'), 'SIGNAL_ONLY')
                     
-    #                 else:
-    #                     execution_results.append({
-    #                         'symbol': signal.get('symbol'),
-    #                         'status': 'failed',
-    #                         'error': result.get('error', 'Unknown error')
-    #                     })
+                    else:
+                        execution_results.append({
+                            'symbol': signal.get('symbol'),
+                            'status': 'failed',
+                            'error': result.get('error', 'Unknown error')
+                        })
             
-    #         if config.TRADE_MODE:
-    #             self.logger.info(f"Live execution: {executed_count} trades executed")
-    #         else:
-    #             self.logger.info(f"Signal generation: {signal_only_count} signals generated (TRADE_MODE=no)")
+            if config.TRADE_MODE:
+                self.logger.info(f"Live execution: {executed_count} trades executed")
+            else:
+                self.logger.info(f"Signal generation: {signal_only_count} signals generated (TRADE_MODE=no)")
             
-    #         return {
-    #             'status': 'completed',
-    #             'live_executed': executed_count,
-    #             'signals_generated': signal_only_count,
-    #             'total_signals': len(signals),
-    #             'results': execution_results,
-    #             'execution_type': 'LIVE' if config.TRADE_MODE else 'SIGNAL_ONLY'
-    #         }
+            return {
+                'status': 'completed',
+                'live_executed': executed_count,
+                'signals_generated': signal_only_count,
+                'total_signals': len(signals),
+                'results': execution_results,
+                'execution_type': 'LIVE' if config.TRADE_MODE else 'SIGNAL_ONLY'
+            }
             
-    #     except Exception as e:
-    #         self.logger.error(f"Live signal execution failed: {e}")
-    #         return self.auto_execute_signals(signals)
+        except Exception as e:
+            self.logger.error(f"Live signal execution failed: {e}")
+            return self.auto_execute_signals(signals)
 
-    # def get_live_executable_signals(self) -> List[Dict]:
-    #     """Get signals ready for live execution with approved symbols filter"""
+    def get_live_executable_signals(self) -> List[Dict]:
+        """Get signals ready for live execution with approved symbols filter"""
         
-    #     try:
-    #         import config
+        try:
+            import config
             
-    #         # Create approved symbols list for SQL IN clause
-    #         approved_symbols_str = "', '".join(config.LIVE_TRADING_APPROVED_SYMBOLS)
+            # Create approved symbols list for SQL IN clause
+            approved_symbols_str = "', '".join(config.LIVE_TRADING_APPROVED_SYMBOLS)
             
-    #         query = f"""
-    #             SELECT * FROM agent_live_signals 
-    #             WHERE overall_confidence >= %s 
-    #             AND created_at >= CURRENT_DATE 
-    #             AND executed_at IS NULL
-    #             AND symbol IN ('{approved_symbols_str}')
-    #             ORDER BY overall_confidence DESC, created_at DESC
-    #             LIMIT %s
-    #         """
+            query = f"""
+                SELECT * FROM agent_live_signals 
+                WHERE overall_confidence >= %s 
+                AND created_at >= CURRENT_DATE 
+                AND executed_at IS NULL
+                AND symbol IN ('{approved_symbols_str}')
+                ORDER BY overall_confidence DESC, created_at DESC
+                LIMIT %s
+            """
             
-    #         limit = min(config.LIVE_MAX_POSITIONS, len(config.LIVE_TRADING_APPROVED_SYMBOLS))
+            limit = min(config.LIVE_MAX_POSITIONS, len(config.LIVE_TRADING_APPROVED_SYMBOLS))
             
-    #         with self.db_manager.get_connection() as conn:
-    #             with conn.cursor() as cursor:
-    #                 cursor.execute(query, (config.LIVE_MIN_CONFIDENCE_THRESHOLD, limit))
-    #                 columns = [desc[0] for desc in cursor.description]
-    #                 rows = cursor.fetchall()
-    #                 return [dict(zip(columns, row)) for row in rows]
+            with self.db_manager.get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(query, (config.LIVE_MIN_CONFIDENCE_THRESHOLD, limit))
+                    columns = [desc[0] for desc in cursor.description]
+                    rows = cursor.fetchall()
+                    return [dict(zip(columns, row)) for row in rows]
                     
-    #     except Exception as e:
-    #         self.logger.error(f"Failed to get live executable signals: {e}")
-    #         return []
+        except Exception as e:
+            self.logger.error(f"Failed to get live executable signals: {e}")
+            return []
 
-    # def generate_live_trade_orders(self, symbols: List[str] = None) -> Dict:
-    #     """Generate signals with trade mode awareness"""
+    def generate_live_trade_orders(self, symbols: List[str] = None) -> Dict:
+        """Generate signals with trade mode awareness"""
         
-    #     try:
-    #         import config
+        try:
+            import config
             
-    #         if not config.LIVE_TRADING_MODE:
-    #             return self.generate_trade_orders(symbols)
+            if not config.LIVE_TRADING_MODE:
+                return self.generate_trade_orders(symbols)
             
-    #         # Generate fresh signals
-    #         if symbols:
-    #             signals = []
-    #             for symbol in symbols:
-    #                 signal = self.generate_signal(symbol)
-    #                 if signal and 'error' not in signal:
-    #                     signals.append(signal)
-    #         else:
-    #             # Conservative symbol selection for live trading
-    #             approved_symbols = config.LIVE_TRADING_APPROVED_SYMBOLS[:5]  # Top 5 approved
-    #             signals = [self.generate_signal(symbol) for symbol in approved_symbols]
-    #             signals = [s for s in signals if s and 'error' not in s]
+            # Generate fresh signals
+            if symbols:
+                signals = []
+                for symbol in symbols:
+                    signal = self.generate_signal(symbol)
+                    if signal and 'error' not in signal:
+                        signals.append(signal)
+            else:
+                # Conservative symbol selection for live trading
+                approved_symbols = config.LIVE_TRADING_APPROVED_SYMBOLS[:5]  # Top 5 approved
+                signals = [self.generate_signal(symbol) for symbol in approved_symbols]
+                signals = [s for s in signals if s and 'error' not in s]
             
-    #         # Filter for live trading (higher confidence threshold)
-    #         executable_signals = [
-    #             s for s in signals 
-    #             if s.get('overall_confidence', 0) >= config.LIVE_MIN_CONFIDENCE_THRESHOLD
-    #         ]
+            # Filter for live trading (higher confidence threshold)
+            executable_signals = [
+                s for s in signals 
+                if s.get('overall_confidence', 0) >= config.LIVE_MIN_CONFIDENCE_THRESHOLD
+            ]
             
-    #         # Execute live trades or generate signals only
-    #         execution_result = self.execute_live_signals(executable_signals)
+            # Execute live trades or generate signals only
+            execution_result = self.execute_live_signals(executable_signals)
             
-    #         return {
-    #             'signals_generated': len(signals),
-    #             'live_executable_signals': len(executable_signals),
-    #             'execution_result': execution_result,
-    #             'signals': executable_signals,
-    #             'execution_type': 'LIVE' if config.TRADE_MODE else 'SIGNAL_ONLY',
-    #             'trade_mode': 'enabled' if config.TRADE_MODE else 'disabled'
-    #         }
+            return {
+                'signals_generated': len(signals),
+                'live_executable_signals': len(executable_signals),
+                'execution_result': execution_result,
+                'signals': executable_signals,
+                'execution_type': 'LIVE' if config.TRADE_MODE else 'SIGNAL_ONLY',
+                'trade_mode': 'enabled' if config.TRADE_MODE else 'disabled'
+            }
             
-    #     except Exception as e:
-    #         self.logger.error(f"Live trade order generation failed: {e}")
-    #         return self.generate_trade_orders(symbols)
+        except Exception as e:
+            self.logger.error(f"Live trade order generation failed: {e}")
+            return self.generate_trade_orders(symbols)
 
-    # def _is_live_trading_allowed(self) -> bool:
-    #     """Check if live trading is allowed based on current conditions"""
+    def _is_live_trading_allowed(self) -> bool:
+        """Check if live trading is allowed based on current conditions"""
         
-    #     try:
-    #         import config
-    #         from agents.portfolio_agent import PortfolioAgent
+        try:
+            import config
+            from agents.portfolio_agent import PortfolioAgent
             
-    #         # Check if market is open
-    #         portfolio_agent = PortfolioAgent(self.db_manager)
-    #         if not portfolio_agent._is_market_open():
-    #             return False
+            # Check if market is open
+            portfolio_agent = PortfolioAgent(self.db_manager)
+            if not portfolio_agent._is_market_open():
+                return False
             
-    #         # Check daily loss limits
-    #         live_summary = portfolio_agent.get_live_portfolio_summary()
-    #         if 'error' in live_summary:
-    #             return False
+            # Check daily loss limits
+            live_summary = portfolio_agent.get_live_portfolio_summary()
+            if 'error' in live_summary:
+                return False
             
-    #         daily_loss = abs(min(0, live_summary.get('unrealized_pnl', 0)))
-    #         if daily_loss >= config.LIVE_MAX_LOSS_PER_DAY:
-    #             return False
+            daily_loss = abs(min(0, live_summary.get('unrealized_pnl', 0)))
+            if daily_loss >= config.LIVE_MAX_LOSS_PER_DAY:
+                return False
             
-    #         # Check position limits
-    #         if live_summary.get('open_positions', 0) >= config.LIVE_MAX_POSITIONS:
-    #             return False
+            # Check position limits
+            if live_summary.get('open_positions', 0) >= config.LIVE_MAX_POSITIONS:
+                return False
             
-    #         return True
+            return True
             
-    #     except Exception as e:
-    #         self.logger.error(f"Live trading permission check failed: {e}")
-    #         return False
+        except Exception as e:
+            self.logger.error(f"Live trading permission check failed: {e}")
+            return False
 
-    # def _validate_live_execution_criteria(self, signal: Dict) -> bool:
-    #     """Enhanced validation with approved symbols and trade mode"""
+    def _validate_live_execution_criteria(self, signal: Dict) -> bool:
+        """Enhanced validation with approved symbols and trade mode"""
         
-    #     try:
-    #         import config
-    #         from datetime import datetime, timedelta
+        try:
+            import config
+            from datetime import datetime, timedelta
             
-    #         # Check if symbol is approved for live trading
-    #         symbol = signal.get('symbol')
-    #         if symbol not in config.LIVE_TRADING_APPROVED_SYMBOLS:
-    #             return False
+            # Check if symbol is approved for live trading
+            symbol = signal.get('symbol')
+            if symbol not in config.LIVE_TRADING_APPROVED_SYMBOLS:
+                return False
             
-    #         # Higher confidence threshold for live trading
-    #         if signal.get('overall_confidence', 0) < config.LIVE_MIN_CONFIDENCE_THRESHOLD:
-    #             return False
+            # Higher confidence threshold for live trading
+            if signal.get('overall_confidence', 0) < config.LIVE_MIN_CONFIDENCE_THRESHOLD:
+                return False
             
-    #         # Check signal freshness (only execute recent signals live)
-    #         if isinstance(signal.get('created_at'), str):
-    #             signal_time = datetime.fromisoformat(signal.get('created_at'))
-    #         else:
-    #             signal_time = signal.get('created_at', datetime.now())
+            # Check signal freshness (only execute recent signals live)
+            if isinstance(signal.get('created_at'), str):
+                signal_time = datetime.fromisoformat(signal.get('created_at'))
+            else:
+                signal_time = signal.get('created_at', datetime.now())
             
-    #         if datetime.now() - signal_time > timedelta(hours=1):
-    #             return False
+            if datetime.now() - signal_time > timedelta(hours=1):
+                return False
             
-    #         return True
+            return True
             
-    #     except Exception as e:
-    #         self.logger.error(f"Live execution criteria validation failed: {e}")
-    #         return False
+        except Exception as e:
+            self.logger.error(f"Live execution criteria validation failed: {e}")
+            return False
 
     def _mark_signal_executed(self, signal_id: int, execution_type: str = 'PAPER'):
         """Mark signal as executed (standardized connection)"""

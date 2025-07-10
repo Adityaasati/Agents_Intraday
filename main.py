@@ -99,7 +99,7 @@ class NexusTradingSystem:
             format='%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
             handlers=[
                 logging.FileHandler(log_file, encoding='utf-8'),
-                logging.StreamHandler(sys.stdout)
+                # logging.StreamHandler(sys.stdout)
             ]
         )
         
